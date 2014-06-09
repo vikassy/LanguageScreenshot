@@ -1,0 +1,7 @@
+hooks.rb: 
+
+"VisualEditor_Page_Option:_VisualEditor_Category" => ["tools_menu_element","page_option_menus_element"],
+
+visual_edit_page.rb: 
+
+div(:page_option_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 5)

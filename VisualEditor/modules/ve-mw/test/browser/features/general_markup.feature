@@ -8,8 +8,7 @@ Feature: VisualEditor general text markup features
   @language_screenshot
   Scenario: Presence of Formatting Menus
     When I click the text style menu
-    Then I should see Formatting Menus
-
+    Then I should see Formatting pull-down menu
 
   Scenario Outline: VisualEditor general markup
     When I click the text style menu

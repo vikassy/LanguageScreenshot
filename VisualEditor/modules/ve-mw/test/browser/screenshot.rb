@@ -24,21 +24,21 @@ class LanguageScreenshotBot
     file_name.gsub(/_/," ")
     date = Date.today.to_s
     "=={{int:filedesc}}==
-  {{Information
-  |description={{#{language_code}|1=#{file_name}}}
-  |date=#{date}
-  |source=Automatically created by MediaWiki-Selenium-Screenshot-Creator
-  |author=Automatically created by MediaWiki-Selenium-Screenshot-Creator
-  |permission=
-  |other_versions=
-  |other_fields=
-  }}
+{{Information
+|description={{en|1=#{file_name}}}
+|date=#{date}
+|source=[[User:LanguageScreenshotBot|Automatically created by LanguageScreenshotBot]]
+|author=[[User:LanguageScreenshotBot|Automatically created by LanguageScreenshotBot]]
+|permission=
+|other_versions=
+|other_fields=
+}}
 
-  =={{int:license-header}}==
-  {{Wikipedia-screenshot}}
+=={{int:license-header}}==
+{{Wikipedia-screenshot}}
 
-  [[Category:VisualEditor]]
-  [[Category:#{language}]]"
+[[Category:VisualEditor]]
+[[Category:#{language}]]"
   end
 
   def upload_all_images(language, language_code)

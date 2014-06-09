@@ -30,6 +30,6 @@ And(/^I click the Underline menu option$/) do
   on(VisualEditorPage).ve_underline_element.when_present(15).click
 end
 
-Then(/^I should see Formatting Menus$/) do
+Then(/^I should see Formatting pull-down menu$/) do
   on(VisualEditorPage).formatting_option_menus_element.when_present.should be_visible
 end
