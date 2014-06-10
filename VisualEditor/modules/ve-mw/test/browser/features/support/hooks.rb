@@ -39,6 +39,7 @@ end
 def screenshot_elements(scenario)
   screenshot_elements_hash = {
     "VisualEditor_Headings:_Check_presence_of_all_headings_values" => ["heading_menus_element","heading_dropdown_menus_element"],
+    "VisualEditor_Page_Option:_VisualEditor_Category" => ["tools_menu_element","page_option_menus_element"],
     "VisualEditor_general_text_markup_features:_Presence_of_Formatting_Menus" => ["ve_text_style_element","formatting_option_menus_element"]
   }
   screenshot_elements_hash.fetch(scenario)

@@ -36,6 +36,7 @@ class VisualEditorPage
   span(:switch_to_source_editing, class: "oo-ui-iconedElement-icon oo-ui-icon-source")
   div(:heading_menus, class: "oo-ui-widget oo-ui-toolGroup oo-ui-indicatedElement oo-ui-popupToolGroup oo-ui-menuToolGroup oo-ui-labeledElement oo-ui-widget-enabled oo-ui-popupToolGroup-active")
   div(:heading_dropdown_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable")
+  div(:page_option_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 5)
   div(:formatting_option_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 1)
 
   if ENV["BROWSER"] == "chrome"
