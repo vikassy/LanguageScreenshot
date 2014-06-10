@@ -11,13 +11,11 @@ class LanguageScreenshotBot
 
   def initialize
     @api_client = MediawikiApi::Client.new((ENV["MEDIAWIKI_UPLOAD_API"] || "http://commons.wikimedia.org/w/api.php"))
-    puts @api_client.inspect
-    puts "Login with #{ENV["UPLOAD_USER"]},#{ENV["UPLOAD_PASSWORD"]}"
     @api_client.log_in(ENV["UPLOAD_USER"], ENV["UPLOAD_PASSWORD"])
   end
 
   def run_cucumber
-    `bundle exec cucumber features/ --tags @language_screenshot`
+    puts `bundle exec cucumber features/ --tags @language_screenshot`
   end
 
   def license(language, language_code, file_name)
@@ -42,14 +40,10 @@ class LanguageScreenshotBot
   end
 
   def upload_all_images(language, language_code)
-    puts "here!!"
     screenshot_directory = ENV["LANGUAGE_SCREENSHOT_PATH"] || "./screenshots/"
-    	#Upload each image to wikimedia commmons
     Dir["./#{screenshot_directory}/*-#{language_code}.png"].each do |file_path|
-    	# upload_image()
     	file_name = File.basename(file_path, "")
-    	puts "Uploading #{file_name}"
-    	puts @api_client.upload_image(file_name, file_path, license(language, language_code, file_name),true)
+    	@api_client.upload_image(file_name, file_path, license(language, language_code, file_name),true)
     end
   end
 
