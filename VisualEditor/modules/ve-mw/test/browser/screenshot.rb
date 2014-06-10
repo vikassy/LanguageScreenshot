@@ -56,7 +56,7 @@ class LanguageScreenshotBot
       #Run Cucumber test 
       run_cucumber()
       #Upload images
-      # upload_all_images(language.to_s,language_code)
+      upload_all_images(language.to_s,language_code)
     end
   end
 end
