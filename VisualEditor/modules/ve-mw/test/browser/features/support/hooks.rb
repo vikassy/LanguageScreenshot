@@ -26,7 +26,7 @@ def capture_screenshot(file_name, path)
     max_x = location_x+width if location_x+width > max_x
     max_y = location_y+height if location_y+height > max_y
   end
-  crop_image(path, max_x, min_x, max_y, min_y)
+  crop_image(path, max_x.to_i, min_x.to_i, max_y.to_i, min_y.to_i)
 end
 
 def crop_image(path, max_x, min_x, max_y, min_y)
@@ -38,7 +38,7 @@ end
 
 def screenshot_elements(scenario)
   screenshot_elements_hash = {
-    "VisualEditor_Headings:_Check_presence_of_all_headings_values" => ["heading_menus_element","heading_dropdown_menus_element"],
+    "VisualEditor_Headings:_Check_presence_of_all_headings_values" => ["downarrow_element","heading_dropdown_menus_element"],
     "VisualEditor_Page_Option:_VisualEditor_Category" => ["tools_menu_element","page_option_menus_element"],
     "VisualEditor_general_text_markup_features:_Presence_of_Formatting_Menus" => ["ve_text_style_element","formatting_option_menus_element"]
   }
