@@ -52,11 +52,11 @@ class LanguageScreenshotBot
       #Set Environment variable
       ENV["LANGUAGE_SCREENSHOT_CODE"]=language_code
       ENV["MEDIAWIKI_API_URL"]="http://#{language_code}.wikipedia.beta.wmflabs.org/w/api.php"
-      ENV["MEDIAWIKI_URL"]="http://#{language_code}.wikipedia.beta.wmflabs.org/wiki"
+      ENV["MEDIAWIKI_URL"]="http://#{language_code}.wikipedia.beta.wmflabs.org/wiki/"
       #Run Cucumber test 
       run_cucumber()
       #Upload images
-      upload_all_images(language.to_s,language_code)
+      # upload_all_images(language.to_s,language_code)
     end
   end
 end
