@@ -43,7 +43,7 @@ class LanguageScreenshotBot
     screenshot_directory = ENV["LANGUAGE_SCREENSHOT_PATH"] || "./screenshots/"
     Dir["./#{screenshot_directory}/*-#{language_code}.png"].each do |file_path|
     	file_name = File.basename(file_path, "")
-    	@api_client.upload_image(file_name, file_path, license(language, language_code, file_name),true)
+    	puts @api_client.upload_image(file_name, file_path, license(language, language_code, file_name),true)
     end
   end
 
