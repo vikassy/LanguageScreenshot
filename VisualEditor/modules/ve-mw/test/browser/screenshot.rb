@@ -22,7 +22,7 @@ class LanguageScreenshotBot
   end
 
   def run_cucumber
-    puts `bundle exec cucumber features/langauge_screenshot.feature:42`
+    puts `bundle exec cucumber features/langauge_screenshot.feature:4,42`
   end
 
   def license(language, language_code, file_name)
