@@ -22,7 +22,7 @@ class LanguageScreenshotBot
   end
 
   def run_cucumber
-    puts `bundle exec cucumber features/ --tags @language_screenshot`
+    puts `bundle exec cucumber features/langauge_screenshot.feature:42`
   end
 
   def license(language, language_code, file_name)
@@ -58,8 +58,8 @@ class LanguageScreenshotBot
     SUPPORTED_LANGUAGE.each do |language,language_code|
       #Set Environment variable
       ENV["LANGUAGE_SCREENSHOT_CODE"]=language_code
-      ENV["MEDIAWIKI_API_URL"]="http://#{language_code}.wikipedia.beta.wmflabs.org/w/api.php"
-      ENV["MEDIAWIKI_URL"]="http://#{language_code}.wikipedia.beta.wmflabs.org/wiki/"
+      ENV["MEDIAWIKI_API_URL"]="http://en.wikipedia.beta.wmflabs.org/w/api.php"
+      ENV["MEDIAWIKI_URL"]="http://en.wikipedia.beta.wmflabs.org/wiki/"
       #Run Cucumber test 
       run_cucumber()
       #Upload images
