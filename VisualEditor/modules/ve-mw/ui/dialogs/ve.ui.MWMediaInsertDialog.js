@@ -48,7 +48,7 @@ ve.ui.MWMediaInsertDialog.static.icon = 'picture';
  * @param {ve.ui.MWMediaResultWidget|null} item Selected item
  */
 ve.ui.MWMediaInsertDialog.prototype.onSearchSelect = function ( item ) {
-	var info, newDimensions, scalable;
+	var info, newDimensions, scalable, offset, structuralOffset;
 
 	if ( item ) {
 		info = item.imageinfo[0];
@@ -74,7 +74,11 @@ ve.ui.MWMediaInsertDialog.prototype.onSearchSelect = function ( item ) {
 			};
 		}
 
-		this.getFragment().collapseRangeToEnd().insertContent( [
+		// Go to start of paragraph
+		offset = this.getFragment().getRange().start;
+		structuralOffset = this.getFragment().getDocument().data.getNearestStructuralOffset( offset, -1 );
+		this.fragment = this.getFragment().clone( new ve.Range( structuralOffset ) );
+		this.fragment.insertContent( [
 			{
 				'type': 'mwBlockImage',
 				'attributes': {
@@ -93,7 +97,7 @@ ve.ui.MWMediaInsertDialog.prototype.onSearchSelect = function ( item ) {
 			{ 'type': 'mwImageCaption' },
 			{ 'type': '/mwImageCaption' },
 			{ 'type': '/mwBlockImage' }
-		] ).collapseRangeToEnd().select();
+		] );
 
 		this.close();
 	}
@@ -114,7 +118,7 @@ ve.ui.MWMediaInsertDialog.prototype.getFileRepos = function () {
 		// The decision whether to take 'url' or 'apiurl' per each repository is made
 		// in the MWMediaSearchWidget depending on whether it is local and has apiurl
 		// defined at all.
-		ve.init.mw.Target.static.apiRequest( {
+		ve.init.target.constructor.static.apiRequest( {
 			'action': 'query',
 			'meta': 'filerepoinfo'
 		} )

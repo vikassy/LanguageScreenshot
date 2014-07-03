@@ -4,7 +4,6 @@
  * @copyright 2011-2014 VisualEditor Team and others; see AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
-/*global mw */
 
 /**
  * Dialog for editing MediaWiki media objects.
@@ -110,26 +109,34 @@ ve.ui.MWMediaEditDialog.static.surfaceCommands = [
 	'pasteSpecial'
 ];
 
-ve.ui.MWMediaEditDialog.static.pasteRules = ve.extendObject(
-	ve.copy( ve.init.mw.Target.static.pasteRules ),
-	{
-		'all': {
-			'blacklist': OO.simpleArrayUnion(
-				ve.getProp( ve.init.mw.Target.static.pasteRules, 'all', 'blacklist' ) || [],
-				[
-					// Tables (but not lists) are possible in wikitext with a leading
-					// line break but we prevent creating these with the UI
-					'list', 'listItem', 'definitionList', 'definitionListItem',
-					'table', 'tableCaption', 'tableSection', 'tableRow', 'tableCell'
-				]
-			),
-			// Headings are also possible, but discouraged
-			'conversions': {
-				'mwHeading': 'paragraph'
+/**
+ * Get the paste rules for the surface widget in the dialog
+ *
+ * @see ve.dm.ElementLinearData#sanitize
+ * @return {Object} Paste rules
+ */
+ve.ui.MWMediaEditDialog.static.getPasteRules = function () {
+	return ve.extendObject(
+		ve.copy( ve.init.target.constructor.static.pasteRules ),
+		{
+			'all': {
+				'blacklist': OO.simpleArrayUnion(
+					ve.getProp( ve.init.target.constructor.static.pasteRules, 'all', 'blacklist' ) || [],
+					[
+						// Tables (but not lists) are possible in wikitext with a leading
+						// line break but we prevent creating these with the UI
+						'list', 'listItem', 'definitionList', 'definitionListItem',
+						'table', 'tableCaption', 'tableSection', 'tableRow', 'tableCell'
+					]
+				),
+				// Headings are also possible, but discouraged
+				'conversions': {
+					'mwHeading': 'paragraph'
+				}
 			}
 		}
-	}
-);
+	);
+};
 
 /* Methods */
 
@@ -304,9 +311,6 @@ ve.ui.MWMediaEditDialog.prototype.initialize = function () {
 		this.$sizeWidgetElements
 	] );
 
-	// Get wiki default thumbnail size
-	this.defaultThumbSize = mw.config.get( 'wgVisualEditorConfig' ).defaultUserOptions.defaultthumbsize;
-
 	// Events
 	this.positionCheckbox.connect( this, { 'change': 'onPositionCheckboxChange' } );
 	this.borderCheckbox.connect( this, { 'change': 'onBorderCheckboxChange' } );
@@ -372,12 +376,13 @@ ve.ui.MWMediaEditDialog.prototype.onPositionCheckboxChange = function ( checked 
 	var newPositionValue,
 		currentModelAlignment = this.imageModel.getAlignment();
 
-	// Only update if the current value is different than that of the image model
+	this.positionInput.setDisabled( !checked );
+	// Only update the model if the current value is different than that
+	// of the image model
 	if (
 		( currentModelAlignment === 'none' && checked ) ||
 		( currentModelAlignment !== 'none' && !checked )
 	) {
-		this.positionInput.setDisabled( !checked );
 		if ( checked ) {
 			// Picking a floating alignment value will create a block image
 			// no matter what the type is, so in here we want to calculate
@@ -432,6 +437,9 @@ ve.ui.MWMediaEditDialog.prototype.onTypeInputChoose = function ( item ) {
 	if ( this.imageModel.getType() !== type ) {
 		this.imageModel.setType( type );
 	}
+
+	// If type is 'frame', disable the size input widget completely
+	this.sizeWidget.setDisabled( type === 'frame' );
 };
 
 /**
@@ -460,9 +468,17 @@ ve.ui.MWMediaEditDialog.prototype.getSetupProcess = function ( data ) {
 					'$': this.$,
 					'tools': this.constructor.static.toolbarGroups,
 					'commands': this.constructor.static.surfaceCommands,
-					'pasteRules': this.constructor.static.pasteRules
+					'pasteRules': this.constructor.static.getPasteRules()
 				}
 			);
+			this.captionSurface.getSurface().getModel().connect( this, {
+				'documentUpdate': function () {
+					this.wikitextWarning = ve.init.mw.ViewPageTarget.static.checkForWikitextWarning(
+						this.captionSurface.getSurface(),
+						this.wikitextWarning
+					);
+				}
+			} );
 
 			// Size widget
 			this.$spinner.hide();
@@ -475,6 +491,8 @@ ve.ui.MWMediaEditDialog.prototype.getSetupProcess = function ( data ) {
 				'default' :
 				'custom'
 			);
+
+			this.sizeWidget.setDisabled( this.imageModel.getType() === 'frame' );
 
 			// Set initial alt text
 			this.altTextInput.setValue(
@@ -536,6 +554,9 @@ ve.ui.MWMediaEditDialog.prototype.getTeardownProcess = function ( data ) {
 		.first( function () {
 			// Cleanup
 			this.imageModel.disconnect( this );
+			if ( this.wikitextWarning ) {
+				this.wikitextWarning.close();
+			}
 			this.captionSurface.destroy();
 			this.captionSurface = null;
 			this.captionNode = null;
@@ -564,14 +585,10 @@ ve.ui.MWMediaEditDialog.prototype.applyChanges = function () {
 	// vise versa
 	if ( this.mediaNode.type !== this.imageModel.getImageNodeType() ) {
 		// Remove the old image
-		surfaceModel.change(
-			ve.dm.Transaction.newFromRemoval(
-				surfaceModel.getDocument(),
-				this.mediaNode.getOuterRange()
-			)
-		);
+		this.fragment = this.getFragment().clone( this.mediaNode.getOuterRange() );
+		this.fragment.removeContent();
 		// Insert the new image
-		this.imageModel.insertImageNode( this.getFragment() );
+		this.fragment = this.imageModel.insertImageNode( this.getFragment() );
 	} else {
 		// Update current node
 		this.imageModel.updateImageNode( surfaceModel );

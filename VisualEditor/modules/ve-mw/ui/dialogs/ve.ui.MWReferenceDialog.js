@@ -109,28 +109,36 @@ ve.ui.MWReferenceDialog.static.surfaceCommands = [
 	'pasteSpecial'
 ];
 
-ve.ui.MWReferenceDialog.static.pasteRules = ve.extendObject(
-	ve.copy( ve.init.mw.Target.static.pasteRules ),
-	{
-		'all': {
-			'blacklist': OO.simpleArrayUnion(
-				ve.getProp( ve.init.mw.Target.static.pasteRules, 'all', 'blacklist' ) || [],
-				[
-					// Nested references are impossible
-					'mwReference', 'mwReferenceList',
-					// Lists are tables are actually possible in wikitext with a leading
-					// line break but we prevent creating these with the UI
-					'list', 'listItem', 'definitionList', 'definitionListItem',
-					'table', 'tableCaption', 'tableSection', 'tableRow', 'tableCell'
-				]
-			),
-			// Headings are not possible in wikitext without HTML
-			'conversions': {
-				'mwHeading': 'paragraph'
+/**
+ * Get the paste rules for the surface widget in the dialog
+ *
+ * @see ve.dm.ElementLinearData#sanitize
+ * @return {Object} Paste rules
+ */
+ve.ui.MWReferenceDialog.static.getPasteRules = function () {
+	return ve.extendObject(
+		ve.copy( ve.init.target.constructor.static.pasteRules ),
+		{
+			'all': {
+				'blacklist': OO.simpleArrayUnion(
+					ve.getProp( ve.init.target.constructor.static.pasteRules, 'all', 'blacklist' ) || [],
+					[
+						// Nested references are impossible
+						'mwReference', 'mwReferenceList',
+						// Lists are tables are actually possible in wikitext with a leading
+						// line break but we prevent creating these with the UI
+						'list', 'listItem', 'definitionList', 'definitionListItem',
+						'table', 'tableCaption', 'tableSection', 'tableRow', 'tableCell'
+					]
+				),
+				// Headings are not possible in wikitext without HTML
+				'conversions': {
+					'mwHeading': 'paragraph'
+				}
 			}
 		}
-	}
-);
+	);
+};
 
 /* Methods */
 
@@ -199,12 +207,20 @@ ve.ui.MWReferenceDialog.prototype.useReference = function ( ref ) {
 			'$': this.$,
 			'tools': this.constructor.static.toolbarGroups,
 			'commands': this.constructor.static.surfaceCommands,
-			'pasteRules': this.constructor.static.pasteRules
+			'pasteRules': this.constructor.static.getPasteRules()
 		}
 	);
 
 	// Events
 	this.referenceModel.getDocument().connect( this, { 'transact': 'onDocumentTransact' } );
+	this.referenceSurface.getSurface().getModel().connect( this, {
+		'documentUpdate': function () {
+			this.wikitextWarning = ve.init.mw.ViewPageTarget.static.checkForWikitextWarning(
+				this.referenceSurface.getSurface(),
+				this.wikitextWarning
+			);
+		}
+	} );
 
 	// Initialization
 	this.referenceGroupInput.setValue( this.referenceModel.getGroup() );
@@ -227,8 +243,7 @@ ve.ui.MWReferenceDialog.prototype.getApplyButtonLabel = function () {
  * @inheritdoc
  */
 ve.ui.MWReferenceDialog.prototype.applyChanges = function () {
-		var surfaceFragment = this.getFragment(),
-		surfaceModel = surfaceFragment.getSurface();
+	var surfaceModel = this.getFragment().getSurface();
 
 	this.referenceModel.setGroup( this.referenceGroupInput.getValue() );
 
@@ -237,7 +252,9 @@ ve.ui.MWReferenceDialog.prototype.applyChanges = function () {
 		if ( !this.referenceModel.findInternalItem( surfaceModel ) ) {
 			this.referenceModel.insertInternalItem( surfaceModel );
 		}
-		this.referenceModel.insertReferenceNode( surfaceFragment );
+		// Collapse returns a new fragment, so update this.fragment
+		this.fragment = this.getFragment().collapseRangeToEnd();
+		this.referenceModel.insertReferenceNode( this.getFragment() );
 	}
 
 	// Update internal item
@@ -361,6 +378,9 @@ ve.ui.MWReferenceDialog.prototype.getTeardownProcess = function ( data ) {
 	return ve.ui.MWReferenceDialog.super.prototype.getTeardownProcess.call( this, data )
 		.first( function () {
 			this.search.getQuery().setValue( '' );
+			if ( this.wikitextWarning ) {
+				this.wikitextWarning.close();
+			}
 			this.referenceSurface.destroy();
 			this.referenceSurface = null;
 			this.referenceModel = null;

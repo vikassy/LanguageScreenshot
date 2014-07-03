@@ -19,10 +19,6 @@ Then(/^(.+) should appear in the diff view$/) do |headings_string|
   end
 end
 
-Then(/^I should see Headings pull-down menu$/) do
-  on(VisualEditorPage).heading_dropdown_menus_element.when_present.should be_visible
-end
-
 When(/^I click Heading$/) do
   on(VisualEditorPage).heading_element.when_present.click
 end

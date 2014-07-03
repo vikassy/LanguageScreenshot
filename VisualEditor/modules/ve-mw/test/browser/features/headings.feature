@@ -5,11 +5,6 @@ Feature: VisualEditor Headings
     Given I go to the "Headings VisualEditor Test" page with content "Headings VisualEditor Test"
       And I make the text "Headings VisualEditor Test" be selected
 
-  @language_screenshot
-  Scenario: Check presence of all headings values
-    When I click the down arrow on Headings interface
-    Then I should see Headings pull-down menu
-
   Scenario Outline: Cycle through headings values
     When I click the down arrow on Headings interface
       And I click <headings_interface_name>

@@ -342,25 +342,6 @@ class VisualEditorHooks {
 			),
 		);
 */
-
-/* Disabling Beta Features option for hieroglyphics for now
-		$preferences['visualeditor-enable-mwhiero'] = array(
-			'version' => '1.0',
-			'label-message' => 'visualeditor-preference-mwhiero-label',
-			'desc-message' => 'visualeditor-preference-mwhiero-description',
-			'screenshot' => array(
-				'ltr' => "$iconpath/betafeatures-icon-VisualEditor-hieroglyphics-ltr.svg",
-				'rtl' => "$iconpath/betafeatures-icon-VisualEditor-hieroglyphics-rtl.svg",
-			),
-			'info-message' => 'visualeditor-preference-mwhiero-info-link',
-			'discussion-message' => 'visualeditor-preference-mwhiero-discussion-link',
-			'requirements' => array(
-				'betafeatures' => array(
-					'visualeditor-enable',
-				),
-			),
-		);
-*/
 	}
 
 	public static function onListDefinedTags( &$tags ) {
@@ -488,6 +469,7 @@ class VisualEditorHooks {
 					'lib/ve/lib/jquery.uls/src/jquery.uls.data.js',
 					'lib/ve/lib/jquery.uls/src/jquery.uls.data.utils.js',
 				),
+				'targets' => array( 'desktop', 'mobile' ),
 			),
 			'jquery.i18n' => $wgVisualEditorResourceTemplate + array(
 				'scripts' => array(
@@ -514,6 +496,7 @@ class VisualEditorHooks {
 					'sl' => 'lib/ve/lib/jquery.i18n/src/languages/sl.js',
 					'uk' => 'lib/ve/lib/jquery.i18n/src/languages/uk.js',
 				),
+				'targets' => array( 'desktop', 'mobile' ),
 			),
 		);
 
@@ -552,6 +535,7 @@ class VisualEditorHooks {
 				'lib/ve/modules/unicodejs/test/unicodejs.wordbreak.test.js',
 				// VisualEditor Tests
 				'lib/ve/modules/ve/test/ve.test.utils.js',
+				'modules/ve-mw/test/ve.test.utils.js',
 				'lib/ve/modules/ve/test/ve.test.js',
 				'lib/ve/modules/ve/test/ve.Document.test.js',
 				'lib/ve/modules/ve/test/ve.Node.test.js',
@@ -675,6 +659,26 @@ class VisualEditorHooks {
 	public static function onRedirectSpecialArticleRedirectParams( &$redirectParams ) {
 		array_push( $redirectParams, 'veaction', 'vesection' );
 
+		return true;
+	}
+
+	/**
+	 * If the user has specified that they want to edit the page with VE, suppress any redirect.
+	 * @param Title $title Title being used for request
+	 * @param Article|null $article
+	 * @param OutputPage $output
+	 * @param User $user
+	 * @param WebRequest $request
+	 * @param MediaWiki $mediaWiki
+	 * @return bool Always true
+	 */
+	public static function onBeforeInitialize(
+		Title $title, $article, OutputPage $output,
+		User $user, WebRequest $request, MediaWiki $mediaWiki
+	) {
+		if ( $request->getVal( 'veaction' ) === 'edit' ) {
+			$request->setVal( 'redirect', 'no' );
+		}
 		return true;
 	}
 }

@@ -13,7 +13,7 @@ class VisualEditorPage
   a(:heading, text: /Heading/)
   span(:hamburger_menu, css: "div.oo-ui-listToolGroup:nth-child(2) > span:nth-child(1) > span:nth-child(3)")
   span(:increase_indentation, class: "oo-ui-iconedElement-icon oo-ui-icon-indent-list")
-  span(:insert_menu, text: "Insert")
+  span(:insert_menu, class: "oo-ui-popupToolGroup-handle", index: 4)
   div(:insert_references, class: "oo-ui-window-title")
   span(:internal_linksuggestion, text: "Main Page")
   div(:ip_warning, class: "ve-ui-mwNoticesPopupTool-item")
@@ -23,6 +23,7 @@ class VisualEditorPage
   span(:newpage_linksuggestion, text: "DoesNotExist")
   span(:options_in_hamburger, class: "oo-ui-tool-title", text: "Options")
   div(:page_text, id: "mw-content-text")
+  div(:page_text_after_save, class: "ve-ce-documentNode mw-content-ltr ve-ce-branchNode noime")
   a(:page_title, text: /Page title/)
   a(:paragraph, text: /Paragraph/)
   a(:preformatted, text: /Preformatted/)
@@ -34,10 +35,14 @@ class VisualEditorPage
   a(:subheading3, text: /Sub-heading 3/)
   a(:subheading4, text: /Sub-heading 4/)
   span(:switch_to_source_editing, class: "oo-ui-iconedElement-icon oo-ui-icon-source")
-  div(:heading_menus, class: "oo-ui-widget oo-ui-toolGroup oo-ui-indicatedElement oo-ui-popupToolGroup oo-ui-menuToolGroup oo-ui-labeledElement oo-ui-widget-enabled oo-ui-popupToolGroup-active")
   div(:heading_dropdown_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable")
-  div(:page_option_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 5)
   div(:formatting_option_menus, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 1)
+  span(:page_settings, class: "oo-ui-iconedElement-icon oo-ui-icon-settings")
+  div(:indentation_pull_down, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 3)
+  div(:insert_pull_down, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 4)
+  div(:page_option_menu, class: "oo-ui-toolGroup-tools oo-ui-clippableElement-clippable", index: 5)
+  span(:special_character, class: "oo-ui-iconedElement-icon oo-ui-icon-special-character")
+  div(:iframe, class: "oo-ui-window-frame")
 
   if ENV["BROWSER"] == "chrome"
     div(:tools_menu, class: "oo-ui-widget oo-ui-widget-enabled oo-ui-toolGroup oo-ui-iconedElement oo-ui-popupToolGroup oo-ui-listToolGroup")
@@ -66,6 +71,7 @@ class VisualEditorPage
   a(:second_reference, text: "[1]", index: 2)
 
   in_iframe(index: 0) do |frame|
+
     a(:beta_warning, title: "Close", frame: frame)
     div(:content_box, class: "ve-ce-documentNode ve-ce-branchNode", frame: frame)
     span(:leftarrowclose, class: "oo-ui-iconedElement-icon oo-ui-icon-previous", frame: frame)
@@ -105,6 +111,13 @@ class VisualEditorPage
     text_field(:transclusion_textfield, index: 0, frame: frame)
     span(:existing_reference, text: "Use an existing reference", frame: frame)
     div(:extension_reference, class: "ve-ui-mwReferenceResultWidget-shield", frame: frame)
+    div(:page_settings_heading, class: "oo-ui-labeledElement-label", frame: frame)
+    div(:redirect_page_option, class: "oo-ui-layout oo-ui-labeledElement oo-ui-fieldLayout oo-ui-fieldLayout-align-inline", frame: frame)
+    div(:target_redirect, class: "oo-ui-layout oo-ui-fieldLayout oo-ui-fieldLayout-align-top oo-ui-fieldLayout-disabled", frame: frame)
+    div(:prevent_redirect, class: "oo-ui-layout oo-ui-labeledElement oo-ui-fieldLayout oo-ui-fieldLayout-align-inline oo-ui-fieldLayout-disabled", frame: frame)
+    div(:table_of_contents, class: "oo-ui-layout oo-ui-labeledElement oo-ui-fieldLayout oo-ui-fieldLayout-align-top", frame: frame)
+    div(:page_settings_editlinks, class: "oo-ui-layout oo-ui-labeledElement oo-ui-fieldLayout oo-ui-fieldLayout-align-inline", frame: frame)
+    div(:apply_changes, class: "oo-ui-widget oo-ui-widget-enabled oo-ui-buttonedElement oo-ui-buttonedElement-framed oo-ui-iconedElement oo-ui-buttonWidget oo-ui-labeledElement oo-ui-flaggableElement-primary", frame: frame)
   end
 
   # not having beta warning makes iframes off by one

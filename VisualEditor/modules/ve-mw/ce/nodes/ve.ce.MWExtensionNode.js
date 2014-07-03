@@ -17,8 +17,6 @@
  * @class
  * @abstract
  * @mixins ve.ce.FocusableNode
- * @mixins ve.ce.ProtectedNode
- * @mixins ve.ce.RelocatableNode
  * @mixins ve.ce.GeneratedContentNode
  *
  * @constructor
@@ -26,10 +24,7 @@
 ve.ce.MWExtensionNode = function VeCeMWExtensionNode() {
 	// Mixin constructors
 	ve.ce.FocusableNode.call( this );
-	ve.ce.ProtectedNode.call( this );
-	ve.ce.RelocatableNode.call( this );
 	ve.ce.GeneratedContentNode.call( this );
-	ve.ce.ClickableNode.call( this );
 
 	// DOM changes
 	this.$element.addClass( 've-ce-mwExtensionNode' );
@@ -40,10 +35,18 @@ ve.ce.MWExtensionNode = function VeCeMWExtensionNode() {
 OO.inheritClass( ve.ce.MWExtensionNode, ve.ce.LeafNode );
 
 OO.mixinClass( ve.ce.MWExtensionNode, ve.ce.FocusableNode );
-OO.mixinClass( ve.ce.MWExtensionNode, ve.ce.ProtectedNode );
-OO.mixinClass( ve.ce.MWExtensionNode, ve.ce.RelocatableNode );
 OO.mixinClass( ve.ce.MWExtensionNode, ve.ce.GeneratedContentNode );
-OO.mixinClass( ve.ce.MWExtensionNode, ve.ce.ClickableNode );
+
+/* Static properties */
+
+/**
+ * Extension renders visible content when empty
+ *
+ * @static
+ * @property {boolean}
+ * @inheritable
+ */
+ve.ce.MWExtensionNode.static.rendersEmpty = false;
 
 /* Methods */
 
@@ -59,16 +62,20 @@ ve.ce.MWExtensionNode.prototype.generateContents = function ( config ) {
 			$( xmlDoc.documentElement ).attr( attrs ).text( extsrc )[0]
 		);
 
-	xhr = ve.init.mw.Target.static.apiRequest( {
-		'action': 'visualeditor',
-		'paction': 'parsefragment',
-		'page': mw.config.get( 'wgRelevantPageName' ),
-		'wikitext': wikitext
-	}, { 'type': 'POST' } )
-		.done( ve.bind( this.onParseSuccess, this, deferred ) )
-		.fail( ve.bind( this.onParseError, this, deferred ) );
-
-	return deferred.promise( { abort: xhr.abort } );
+	if ( !this.constructor.static.rendersEmpty && extsrc.trim() !== '' ) {
+		xhr = ve.init.target.constructor.static.apiRequest( {
+			'action': 'visualeditor',
+			'paction': 'parsefragment',
+			'page': mw.config.get( 'wgRelevantPageName' ),
+			'wikitext': wikitext
+		}, { 'type': 'POST' } )
+			.done( ve.bind( this.onParseSuccess, this, deferred ) )
+			.fail( ve.bind( this.onParseError, this, deferred ) );
+		return deferred.promise( { abort: xhr.abort } );
+	} else {
+		deferred.resolve( $( '<span>&nbsp;</span>' ).get() );
+		return deferred.promise();
+	}
 };
 
 /**

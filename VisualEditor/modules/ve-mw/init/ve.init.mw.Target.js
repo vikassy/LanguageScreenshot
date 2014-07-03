@@ -41,11 +41,11 @@ ve.init.mw.Target = function VeInitMwTarget( $container, pageName, revisionId ) 
 	this.events = new ve.init.mw.TargetEvents( this );
 
 	this.modules = [
-			'ext.visualEditor.mwcore',
-			'ext.visualEditor.mwlink',
-			'ext.visualEditor.data',
-			'ext.visualEditor.mwreference'
-		]
+		'ext.visualEditor.mwcore',
+		'ext.visualEditor.mwlink',
+		'ext.visualEditor.data',
+		'ext.visualEditor.mwreference'
+	]
 		.concat( this.constructor.static.iconModuleStyles )
 		.concat( conf.pluginModules || [] );
 
@@ -53,10 +53,6 @@ ve.init.mw.Target = function VeInitMwTarget( $container, pageName, revisionId ) 
 	this.modulesReady = $.Deferred();
 	this.preparedCacheKeyPromise = null;
 	this.clearState();
-	this.isMobileDevice = (
-		'ontouchstart' in window ||
-			( window.DocumentTouch && document instanceof window.DocumentTouch )
-	);
 };
 
 /* Inheritance */
@@ -74,6 +70,7 @@ OO.inheritClass( ve.init.mw.Target, ve.init.Target );
  * @param {string} html Rendered page HTML from server
  * @param {string} categoriesHtml Rendered categories HTML from server
  * @param {number} [newid] New revision id, undefined if unchanged
+ * @param {boolean} isRedirect Whether this page is now a redirect or not.
  */
 
 /**
@@ -277,7 +274,10 @@ ve.init.mw.Target.static.name = 'mwTarget';
  */
 ve.init.mw.Target.static.apiRequest = function ( data, settings ) {
 	var key, formData;
-	data = ve.extendObject( { 'format': 'json' }, data );
+	data = ve.extendObject( {
+		'format': 'json',
+		'uselang': mw.config.get( 'wgUserLanguage' )
+	}, data );
 	settings = ve.extendObject( {
 		'url': mw.util.wikiScript( 'api' ),
 		'dataType': 'json',
@@ -485,7 +485,7 @@ ve.init.mw.Target.prototype.onReady = function () {
 	this.onNoticesReady();
 	this.loading = false;
 	this.edited = false;
-	this.setUpSurface( this.doc, ve.bind( function () {
+	this.setupSurface( this.doc, ve.bind( function () {
 		this.startSanityCheck();
 		this.emit( 'surfaceReady' );
 	}, this ) );
@@ -539,7 +539,7 @@ ve.init.mw.Target.onSave = function ( doc, saveData, response ) {
 	} else if ( typeof data.content !== 'string' ) {
 		this.onSaveError( doc, saveData, null, 'Invalid HTML content in response from server', response );
 	} else {
-		this.emit( 'save', data.content, data.categorieshtml, data.newrevid );
+		this.emit( 'save', data.content, data.categorieshtml, data.newrevid, data.isRedirect );
 	}
 };
 
@@ -552,8 +552,6 @@ ve.init.mw.Target.onSave = function ( doc, saveData, response ) {
  * @param {Object} jqXHR
  * @param {string} status Text status message
  * @param {Object|null} data API response data
- * @fires saveAsyncBegin
- * @fires saveAsyncComplete
  * @fires saveErrorEmpty
  * @fires saveErrorSpamBlacklist
  * @fires saveErrorAbuseFilter
@@ -566,7 +564,6 @@ ve.init.mw.Target.prototype.onSaveError = function ( doc, saveData, jqXHR, statu
 	var api, editApi,
 		viewPage = this;
 	this.saving = false;
-	this.emit( 'saveAsyncComplete' );
 
 	// Handle empty response
 	if ( !data ) {
@@ -591,7 +588,6 @@ ve.init.mw.Target.prototype.onSaveError = function ( doc, saveData, jqXHR, statu
 	// Handle token errors
 	if ( data.error && data.error.code === 'badtoken' ) {
 		api = new mw.Api();
-		this.emit( 'saveAsyncBegin' );
 		api.get( {
 			// action=query&meta=userinfo and action=tokens&type=edit can't be combined
 			// but action=query&meta=userinfo and action=query&prop=info can, however
@@ -607,7 +603,6 @@ ve.init.mw.Target.prototype.onSaveError = function ( doc, saveData, jqXHR, statu
 		} )
 			.always( function () {
 				viewPage.emit( 'saveErrorBadToken' );
-				viewPage.emit( 'saveAsyncComplete' );
 			} )
 			.done( function ( data ) {
 				var userMsg,
@@ -965,7 +960,8 @@ ve.init.mw.Target.prototype.load = function ( additionalModules ) {
 	start = ve.now();
 
 	xhr = this.constructor.static.apiRequest( data );
-	this.loading = xhr.then( function ( data, status, jqxhr ) {
+	this.loading = xhr.then(
+		function ( data, status, jqxhr ) {
 			target.events.track( 'performance.system.domLoad', {
 				'bytes': $.byteLength( jqxhr.responseText ),
 				'duration': ve.now() - start,
@@ -973,7 +969,8 @@ ve.init.mw.Target.prototype.load = function ( additionalModules ) {
 				'parsoid': jqxhr.getResponseHeader( 'X-Parsoid-Performance' )
 			} );
 			return jqxhr;
-		} )
+		}
+	)
 		.done( ve.bind( ve.init.mw.Target.onLoad, this ) )
 		.fail( ve.bind( ve.init.mw.Target.onLoadError, this ) )
 		.promise( { 'abort': xhr.abort } );
@@ -1297,7 +1294,7 @@ ve.init.mw.Target.prototype.getEditNotices = function () {
  * @param {HTMLDocument} doc HTML DOM to edit
  * @param {Function} [callback] Callback to call when done
  */
-ve.init.mw.Target.prototype.setUpSurface = function ( doc, callback ) {
+ve.init.mw.Target.prototype.setupSurface = function ( doc, callback ) {
 	var target = this;
 	setTimeout( function () {
 		// Build model
@@ -1309,29 +1306,36 @@ ve.init.mw.Target.prototype.setUpSurface = function ( doc, callback ) {
 		);
 		setTimeout( function () {
 			// Create ui.Surface (also creates ce.Surface and dm.Surface and builds CE tree)
-			target.surface = target.createSurface( dmDoc );
-			target.surface.$element.addClass( 've-init-mw-viewPageTarget-surface' )
+			var surface = target.createSurface( dmDoc );
+			target.surface = surface;
+			surface.$element.addClass( 've-init-mw-viewPageTarget-surface' )
 				.addClass( target.protectedClasses );
+			surface.addCommands( target.constructor.static.surfaceCommands );
 			setTimeout( function () {
+				var surfaceView = surface.getView(),
+					$documentNode = surfaceView.getDocument().getDocumentNode().$element;
+
 				// Initialize surface
-				target.surface.getContext().hide();
-				target.$document = target.surface.view.$element.find( '.ve-ce-documentNode' );
-				target.$element.append( target.surface.$element );
-				target.setUpToolbar();
+				surface.getContext().hide();
+				target.$element.append( surface.$element );
+				target.setupToolbar();
+				if ( ve.debug ) {
+					target.setupDebugBar();
+				}
 
 				// Apply mw-body-content to the view (ve-ce-surface).
 				// Not to surface (ve-ui-surface), since that contains both the view
 				// and the overlay container, and we don't want inspectors to
 				// inherit skin typography styles for wikipage content.
-				target.surface.view.$element.addClass( 'mw-body-content' );
-				target.$document.addClass(
+				surfaceView.$element.addClass( 'mw-body-content' );
+				$documentNode.addClass(
 					// Add appropriately mw-content-ltr or mw-content-rtl class
 					'mw-content-' + mw.config.get( 'wgVisualEditor' ).pageLanguageDir
 				);
 				target.active = true;
 				// Now that the surface is attached to the document and ready,
 				// let it initialize itself
-				target.surface.initialize();
+				surface.initialize();
 				setTimeout( callback );
 			} );
 		} );
@@ -1339,15 +1343,11 @@ ve.init.mw.Target.prototype.setUpSurface = function ( doc, callback ) {
 };
 
 /**
- * Set up the toolbar and insert it into the DOM.
- *
- * The default implementation inserts it before the surface, but subclasses can override this.
+ * @inheritdoc
  */
-ve.init.mw.Target.prototype.setUpToolbar = function () {
-	this.toolbar = new ve.ui.TargetToolbar( this, this.surface, { 'shadow': true, 'actions': true } );
-	this.toolbar.setup( this.constructor.static.toolbarGroups );
-	this.surface.addCommands( this.constructor.static.surfaceCommands );
-	this.toolbar.$element.insertBefore( this.surface.$element );
+ve.init.mw.Target.prototype.setupToolbar = function () {
+	// Parent method
+	ve.init.Target.prototype.setupToolbar.call( this, { 'shadow': true, 'actions': true } );
 };
 
 /**
@@ -1416,12 +1416,13 @@ ve.init.mw.Target.prototype.startSanityCheck = function () {
  * @method
  */
 ve.init.mw.Target.prototype.restoreEditSection = function () {
-	if ( this.section !== undefined ) {
+	if ( this.section !== undefined && this.section > 0 ) {
 		var offset, offsetNode, nextNode,
 			target = this,
 			surfaceView = this.surface.getView(),
 			surfaceModel = surfaceView.getModel(),
-			$section = this.$document.find( 'h1, h2, h3, h4, h5, h6' ).eq( this.section - 1 ),
+			$documentNode = surfaceView.getDocument().getDocumentNode().$element,
+			$section = $documentNode.find( 'h1, h2, h3, h4, h5, h6' ).eq( this.section - 1 ),
 			headingNode = $section.data( 'view' ),
 			lastHeadingLevel = -1;
 
@@ -1445,7 +1446,11 @@ ve.init.mw.Target.prototype.restoreEditSection = function () {
 			offset = surfaceModel.getDocument().data.getNearestContentOffset(
 				offsetNode.getModel().getOffset(), 1
 			);
-			surfaceModel.setSelection( new ve.Range( offset ) );
+			// onDocumentFocus is debounced, so wait for that to happen before setting
+			// the model selection, otherwise it will get reset
+			this.surface.getView().once( 'focus', function () {
+				surfaceModel.setSelection( new ve.Range( offset ) );
+			} );
 			// Scroll to heading:
 			// Wait for toolbar to animate in so we can account for its height
 			setTimeout( function () {

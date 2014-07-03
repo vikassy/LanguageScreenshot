@@ -46,12 +46,12 @@ ve.ui.MWLiveExtensionInspector.static.mwName = null;
  */
 ve.ui.MWLiveExtensionInspector.prototype.getNewMwData = function () {
 	return {
-			'name': this.constructor.static.mwName || this.constructor.static.name,
-			'attrs': {},
-			'body': {
-				'extsrc': ''
-			}
-		};
+		'name': this.constructor.static.mwName || this.constructor.static.name,
+		'attrs': {},
+		'body': {
+			'extsrc': ''
+		}
+	};
 };
 
 /**
@@ -80,8 +80,6 @@ ve.ui.MWLiveExtensionInspector.prototype.getSetupProcess = function ( data ) {
 				this.getFragment().select();
 				this.node = this.getFragment().getSelectedNode();
 			}
-			this.input.setValue( this.node.getAttribute( 'mw' ).body.extsrc );
-
 			this.input.on( 'change', this.onChangeHandler );
 		}, this );
 };

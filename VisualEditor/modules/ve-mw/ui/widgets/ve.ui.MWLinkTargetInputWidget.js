@@ -70,7 +70,7 @@ ve.ui.MWLinkTargetInputWidget.prototype.onLookupMenuItemChoose = function ( item
  */
 ve.ui.MWLinkTargetInputWidget.prototype.getLookupRequest = function () {
 	if ( mw.Title.newFromText( this.value ) ) {
-		return ve.init.mw.Target.static.apiRequest( {
+		return ve.init.target.constructor.static.apiRequest( {
 			'action': 'query',
 			'generator': 'prefixsearch',
 			'gpssearch': this.value,
@@ -260,7 +260,11 @@ ve.ui.MWLinkTargetInputWidget.prototype.setValue = function ( value ) {
 ve.ui.MWLinkTargetInputWidget.prototype.getInternalLinkAnnotationFromTitle = function ( target ) {
 	var title = mw.Title.newFromText( target );
 
-	if ( title && ( title.getNamespaceId() === 6 || title.getNamespaceId() === 14 ) ) {
+	if (
+		title &&
+		( title.getNamespaceId() === 6 || title.getNamespaceId() === 14 ) &&
+		target[0] !== ':'
+	) {
 		// Prepend links to File and Category namespace with a colon
 		target = ':' + target;
 	}

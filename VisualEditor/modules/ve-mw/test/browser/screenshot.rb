@@ -3,7 +3,14 @@ require_relative '../../../../../mediawiki-ruby-api/lib/mediawiki_api/client.rb'
 SUPPORTED_LANGUAGE={
   English: "en",
   German: "de",
-  Hebrew: "he"
+  Hebrew: "he",
+  Czech: "cs",
+  Italian: "it",
+  Macedonian: "mk",
+  Russian: "ru",
+  Persian: "fa",
+  French: "fr",
+  Interlingua: "ia",
 }
 
 class LanguageScreenshotBot

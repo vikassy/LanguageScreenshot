@@ -5,11 +5,6 @@ Feature: VisualEditor general text markup features
     Given I go to the "General Markup VisualEditor Test" page with content "General Markup VisualEditor Test"
       And I make the text "General Markup VisualEditor Test" be selected
 
-  @language_screenshot
-  Scenario: Presence of Formatting Menus
-    When I click the text style menu
-    Then I should see Formatting pull-down menu
-
   Scenario Outline: VisualEditor general markup
     When I click the text style menu
     And I click the <type_of_markup> menu option

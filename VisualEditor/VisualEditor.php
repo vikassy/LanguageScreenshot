@@ -14,19 +14,17 @@ $wgExtensionCredits['other'][] = array(
 	'path' => __FILE__,
 	'name' => 'VisualEditor',
 	'author' => array(
-		'Trevor Parscal',
-		'Inez Korczyński',
-		'Roan Kattouw',
-		'Neil Kandalgaonkar',
-		'Gabriel Wicke',
-		'Brion Vibber',
+		'Alex Monk',
 		'Christian Williams',
-		'Rob Moen',
-		'Subramanya Sastry',
-		'Timo Tijhof',
-		'Ed Sanders',
 		'David Chan',
+		'Ed Sanders',
+		'Inez Korczyński',
+		'James Forrester',
 		'Moriel Schottlender',
+		'Roan Kattouw',
+		'Rob Moen',
+		'Timo Tijhof',
+		'Trevor Parscal',
 	),
 	'version' => '0.1.0',
 	'url' => 'https://www.mediawiki.org/wiki/Extension:VisualEditor',
@@ -69,6 +67,7 @@ $wgHooks['SkinTemplateNavigation'][] = 'VisualEditorHooks::onSkinTemplateNavigat
 $wgHooks['ParserTestGlobals'][] = 'VisualEditorHooks::onParserTestGlobals';
 $wgHooks['EditPage::showEditForm:fields'][] = 'VisualEditorHooks::onEditPageShowEditFormFields';
 $wgHooks['PageContentSaveComplete'][] = 'VisualEditorHooks::onPageContentSaveComplete';
+$wgHooks['BeforeInitialize'][] = 'VisualEditorHooks::onBeforeInitialize';
 $wgExtensionFunctions[] = 'VisualEditorHooks::onSetup';
 
 // Register resource modules
@@ -190,6 +189,7 @@ $wgResourceModules += array(
 			'spamprotectiontext',
 			'summary-preview',
 			'parentheses',
+			'redirectpagesub',
 
 			// Messages needed by VE in init phase only (rest go below)
 			'visualeditor-loadwarning',
@@ -213,6 +213,7 @@ $wgResourceModules += array(
 			'ext.visualEditor.base',
 			'ext.visualEditor.mediawiki',
 			'ext.visualEditor.core.mobile',
+			'ext.visualEditor.mwimage.core',
 		),
 		'targets' => array( 'mobile' ),
 	),
@@ -370,11 +371,8 @@ $wgResourceModules += array(
 			'lib/ve/modules/ve/ce/ve.ce.BranchNode.js',
 			'lib/ve/modules/ve/ce/ve.ce.ContentBranchNode.js',
 			'lib/ve/modules/ve/ce/ve.ce.LeafNode.js',
-			'lib/ve/modules/ve/ce/ve.ce.ProtectedNode.js',
 			'lib/ve/modules/ve/ce/ve.ce.FocusableNode.js',
-			'lib/ve/modules/ve/ce/ve.ce.RelocatableNode.js',
 			'lib/ve/modules/ve/ce/ve.ce.ResizableNode.js',
-			'lib/ve/modules/ve/ce/ve.ce.ClickableNode.js',
 			'lib/ve/modules/ve/ce/ve.ce.Surface.js',
 			'lib/ve/modules/ve/ce/ve.ce.SurfaceObserver.js',
 
@@ -437,6 +435,8 @@ $wgResourceModules += array(
 
 			'lib/ve/modules/ve/ui/widgets/ve.ui.SurfaceWidget.js',
 			'lib/ve/modules/ve/ui/widgets/ve.ui.LinkTargetInputWidget.js',
+			'lib/ve/modules/ve/ui/widgets/ve.ui.ContextWidget.js',
+			'lib/ve/modules/ve/ui/widgets/ve.ui.ContextItemWidget.js',
 			'lib/ve/modules/ve/ui/widgets/ve.ui.DimensionsWidget.js',
 			'lib/ve/modules/ve/ui/widgets/ve.ui.MediaSizeWidget.js',
 
@@ -455,20 +455,20 @@ $wgResourceModules += array(
 			'lib/ve/modules/ve/ui/inspectors/ve.ui.SpecialCharacterInspector.js',
 		),
 		'debugScripts' => array(
-			'lib/ve/modules/ve/init/ve.init.DebugBar.js',
+			'lib/ve/modules/ve/ui/ve.ui.DebugBar.js',
 		),
 		'styles' => array(
 			// ce
+			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.FocusableNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.AlienNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.BranchNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.DocumentNode.css',
-			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.FocusableNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.GeneratedContentNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.ImageNode.css',
 			'lib/ve/modules/ve/ce/styles/annotations/ve.ce.LanguageAnnotation.css',
-			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.ProtectedNode.css',
-			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.RelocatableNode.css',
 			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.ResizableNode.css',
+			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.TableCellNode.css',
+			'lib/ve/modules/ve/ce/styles/nodes/ve.ce.TableNode.css',
 			'lib/ve/modules/ve/ce/styles/ve.ce.Surface.css',
 
 			// ui
@@ -476,6 +476,8 @@ $wgResourceModules += array(
 			'lib/ve/modules/ve/ui/styles/dialogs/ve.ui.CommandHelpDialog.css',
 			'lib/ve/modules/ve/ui/styles/tools/ve.ui.FormatTool.css',
 			'lib/ve/modules/ve/ui/styles/ve.ui.Inspector.css',
+			'lib/ve/modules/ve/ui/styles/widgets/ve.ui.ContextItemWidget.css',
+			'lib/ve/modules/ve/ui/styles/widgets/ve.ui.ContextWidget.css',
 			'lib/ve/modules/ve/ui/styles/widgets/ve.ui.DimensionsWidget.css',
 			'lib/ve/modules/ve/ui/styles/widgets/ve.ui.MediaSizeWidget.css',
 			'lib/ve/modules/ve/ui/styles/inspectors/ve.ui.SpecialCharacterInspector.css',
@@ -484,7 +486,7 @@ $wgResourceModules += array(
 			'lib/ve/modules/ve/ui/styles/ve.ui.Toolbar.css',
 
 			// TODO: add debugStyles to ResourceLoader
-			'lib/ve/modules/ve/init/styles/ve.init.DebugBar.css',
+			'lib/ve/modules/ve/ui/styles/ve.ui.DebugBar.css',
 		),
 		'skinStyles' => array(
 			'default' => array(
@@ -496,6 +498,7 @@ $wgResourceModules += array(
 		'dependencies' => array(
 			'rangy',
 			'unicodejs.wordbreak',
+			'jquery.uls.data',
 			'ext.visualEditor.base',
 		),
 		'messages' => array(
@@ -519,6 +522,7 @@ $wgResourceModules += array(
 			'visualeditor-dialog-action-goback',
 			'visualeditor-dialog-command-help-title',
 			'visualeditor-dialog-error',
+			'visualeditor-dialog-error-dismiss',
 			'visualeditor-dialog-media-size-originalsize-error',
 			'visualeditor-dimensionswidget-px',
 			'visualeditor-dimensionswidget-times',
@@ -833,9 +837,6 @@ $wgResourceModules += array(
 
 			'modules/ve-mw/ui/tools/ve.ui.MWLinkNodeInspectorTool.js',
 		),
-		'styles' => array(
-			'modules/ve-mw/ce/styles/nodes/ve.ce.MWNumberedExternalLinkNode.css',
-		),
 		'skinStyles' => array(
 			'default' => array(
 				'modules/ve-mw/ui/themes/apex/ve.ui.MWLinkTargetInputWidget.css'
@@ -863,6 +864,7 @@ $wgResourceModules += array(
 		'scripts' => array(
 			'modules/ve-mw/dm/metaitems/ve.dm.MWCategoryMetaItem.js',
 			'modules/ve-mw/dm/metaitems/ve.dm.MWDefaultSortMetaItem.js',
+			'modules/ve-mw/dm/metaitems/ve.dm.MWDisplayTitleMetaItem.js',
 			'modules/ve-mw/dm/metaitems/ve.dm.MWHiddenCategoryMetaItem.js',
 			'modules/ve-mw/dm/metaitems/ve.dm.MWIndexDisableMetaItem.js',
 			'modules/ve-mw/dm/metaitems/ve.dm.MWIndexForceMetaItem.js',
@@ -927,6 +929,8 @@ $wgResourceModules += array(
 			'visualeditor-dialog-meta-languages-name-label',
 			'visualeditor-dialog-meta-languages-readonlynote',
 			'visualeditor-dialog-meta-languages-section',
+			'visualeditor-dialog-meta-settings-displaytitle',
+			'visualeditor-dialog-meta-settings-displaytitle-enable',
 			'visualeditor-dialog-meta-settings-hiddencat-label',
 			'visualeditor-dialog-meta-settings-index-default',
 			'visualeditor-dialog-meta-settings-index-disable',
@@ -1108,8 +1112,6 @@ $wgResourceModules += array(
 			'lib/ve/modules/ve/ui/widgets/ve.ui.LanguageResultWidget.js',
 			'lib/ve/modules/ve/ui/widgets/ve.ui.LanguageSearchWidget.js',
 			'lib/ve/modules/ve/ui/dialogs/ve.ui.LanguageSearchDialog.js',
-			'modules/ve-mw/ui/widgets/ve.ui.MWLanguageSearchWidget.js',
-			'modules/ve-mw/ui/dialogs/ve.ui.MWLanguageSearchDialog.js',
 			'lib/ve/modules/ve/ui/inspectors/ve.ui.LanguageInspector.js',
 			'lib/ve/modules/ve/ui/tools/ve.ui.LanguageInspectorTool.js',
 			'lib/ve/modules/ve/ui/widgets/ve.ui.LanguageInputWidget.js',
@@ -1120,13 +1122,14 @@ $wgResourceModules += array(
 		),
 		'dependencies' => array(
 			'ext.visualEditor.core',
-			'jquery.uls.data',
 			'mediawiki.language.names',
 		),
 		'messages' => array(
 			'visualeditor-annotationbutton-language-tooltip',
 			'visualeditor-dialog-language-auto-direction',
 			'visualeditor-dialog-language-search-title',
+			"visualeditor-languageannotation-description",
+			"visualeditor-languageannotation-description-with-dir",
 			'visualeditor-languageinspector-title',
 			'visualeditor-languageinspector-block-tooltip',
 			'visualeditor-languageinspector-block-tooltip-rtldirection',
@@ -1179,28 +1182,8 @@ $wgResourceModules += array(
 		'targets' => array( 'desktop', 'mobile' ),
 	),
 
-	'ext.visualEditor.mwhiero' => $wgVisualEditorResourceTemplate + array(
-		'scripts' => array(
-			'modules/ve-mw/dm/nodes/ve.dm.MWHieroNode.js',
-			'modules/ve-mw/ce/nodes/ve.ce.MWHieroNode.js',
-			'modules/ve-mw/ui/inspectors/ve.ui.MWHieroInspector.js',
-			'modules/ve-mw/ui/tools/ve.ui.MWHieroInspectorTool.js',
-		),
-		'styles' => array(
-			'modules/ve-mw/ce/styles/nodes/ve.ce.MWHieroNode.css',
-		),
-		'dependencies' => array(
-			'ext.visualEditor.mwcore',
-		),
-		'messages' => array(
-			'visualeditor-mwhieroinspector-title',
-		),
-		'targets' => array( 'desktop', 'mobile' ),
-	),
-
 	'ext.visualEditor.experimental' => array(
 		'dependencies' => array(
-			'ext.visualEditor.mwhiero',
 			'ext.visualEditor.language',
 			'ext.visualEditor.mwalienextension',
 		),
@@ -1238,7 +1221,6 @@ $wgVisualEditorPreferenceModules = array(
 	'visualeditor-enable-experimental' => 'ext.visualEditor.experimental',
 	'visualeditor-enable-language' => 'ext.visualEditor.language',
 	//'visualeditor-enable-mwalienextension' => 'ext.visualEditor.mwalienextension',
-	//'visualeditor-enable-mwhiero' => 'ext.visualEditor.mwhiero'
 );
 
 // URL to the Parsoid instance
