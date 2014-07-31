@@ -71,13 +71,18 @@ class ApiVisualEditorEdit extends ApiVisualEditor {
 			$parserParams['oldid'] = $params['oldid'];
 		}
 
+		$html = $params['html'];
+		if ( substr( $html, 0, 11 ) === 'rawdeflate,' ) {
+			$html = gzinflate( base64_decode( substr( $html, 11 ) ) );
+		}
+
 		if ( $params['cachekey'] !== null ) {
 			$wikitext = $this->trySerializationCache( $params['cachekey'] );
 			if ( !is_string( $wikitext ) ) {
 				$this->dieUsage( 'No cached serialization found with that key', 'badcachekey' );
 			}
 		} else {
-			$wikitext = $this->postHTML( $page, $params['html'], $parserParams );
+			$wikitext = $this->postHTML( $page, $html, $parserParams );
 			if ( $wikitext === false ) {
 				$this->dieUsage( 'Error contacting the Parsoid server', 'parsoidserver' );
 			}
@@ -115,6 +120,14 @@ class ApiVisualEditorEdit extends ApiVisualEditor {
 				$this->dieUsage( 'Error contacting the Parsoid server', 'parsoidserver' );
 			}
 			$result['isRedirect'] = $page->isRedirect();
+
+			$content = new WikitextContent( $wikitext );
+			$parserOutput = $content->getParserOutput( $page );
+			if ( $parserOutput ) {
+				$result['displayTitleHtml'] = $parserOutput->getDisplayTitle();
+			} else {
+				wfDebug( '[VE] ApiVisualEditorEdit - parserOutput was false' );
+			}
 
 			if ( isset( $saveresult['edit']['newrevid'] ) ) {
 				$result['newrevid'] = intval( $saveresult['edit']['newrevid'] );

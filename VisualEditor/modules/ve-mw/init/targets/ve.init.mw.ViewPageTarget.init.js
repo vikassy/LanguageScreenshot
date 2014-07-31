@@ -9,8 +9,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * Platform preparation for the MediaWiki view page. This loads (when user needs it) the
  * actual MediaWiki integration and VisualEditor library.
@@ -86,7 +84,8 @@
 			String.prototype.trim &&
 			window.JSON &&
 			JSON.parse &&
-			JSON.stringify
+			JSON.stringify &&
+			Function.prototype.bind
 		),
 		contentEditable: 'contentEditable' in document.createElement( 'div' ),
 		svg: !!(

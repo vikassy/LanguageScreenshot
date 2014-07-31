@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * Dialog listing all command keyboard shortcuts.
  *
@@ -14,11 +12,12 @@
  * @extends ve.ui.CommandHelpDialog
  *
  * @constructor
+ * @param {OO.ui.WindowManager} manager Manager of window
  * @param {Object} [config] Configuration options
  */
-ve.ui.MWCommandHelpDialog = function VeUiMWCommandHelpDialog( config ) {
+ve.ui.MWCommandHelpDialog = function VeUiMWCommandHelpDialog( manager, config ) {
 	// Parent constructor
-	ve.ui.MWCommandHelpDialog.super.call( this, config );
+	ve.ui.MWCommandHelpDialog.super.call( this, manager, config );
 };
 
 /* Inheritance */

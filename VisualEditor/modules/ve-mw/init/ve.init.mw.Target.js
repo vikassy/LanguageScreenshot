@@ -5,7 +5,7 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
+/*global EasyDeflate */
 
 /**
  * Initialization MediaWiki target.
@@ -44,10 +44,17 @@ ve.init.mw.Target = function VeInitMwTarget( $container, pageName, revisionId ) 
 		'ext.visualEditor.mwcore',
 		'ext.visualEditor.mwlink',
 		'ext.visualEditor.data',
-		'ext.visualEditor.mwreference'
+		'ext.visualEditor.mwreference.core',
+		'ext.visualEditor.mwtransclusion.core',
+		'ext.visualEditor.mwreference',
+		'ext.visualEditor.mwtransclusion'
 	]
 		.concat( this.constructor.static.iconModuleStyles )
 		.concat( conf.pluginModules || [] );
+
+	if ( ve.init.platform.isInternetExplorer() ) {
+		this.modules.push( 'ext.visualEditor.iehacks' );
+	}
 
 	this.pluginCallbacks = [];
 	this.modulesReady = $.Deferred();
@@ -194,9 +201,9 @@ ve.init.mw.Target.static.toolbarGroups = [
 		'icon': 'text-style',
 		'indicator': 'down',
 		'title': OO.ui.deferMsg( 'visualeditor-toolbar-style-tooltip' ),
-		'include': [ { 'group': 'textStyle' }, 'clear' ],
+		'include': [ { 'group': 'textStyle' }, 'language', 'clear' ],
 		'promote': [ 'bold', 'italic' ],
-		'demote': [ 'strikethrough', 'code', 'underline', 'clear' ]
+		'demote': [ 'strikethrough', 'code', 'underline', 'language', 'clear' ]
 	},
 	// Link
 	{ 'include': [ 'link' ] },
@@ -205,7 +212,8 @@ ve.init.mw.Target.static.toolbarGroups = [
 		'type': 'list',
 		'label': OO.ui.deferMsg( 'visualeditor-toolbar-cite-label' ),
 		'indicator': 'down',
-		'include': [ { 'group': 'cite' } ]
+		'include': [ { 'group': 'cite' }, 'reference', 'reference/existing' ],
+		'demote': [ 'reference', 'reference/existing' ]
 	},
 	// Structure
 	{
@@ -220,8 +228,8 @@ ve.init.mw.Target.static.toolbarGroups = [
 		'label': OO.ui.deferMsg( 'visualeditor-toolbar-insert' ),
 		'indicator': 'down',
 		'include': '*',
-		'promote': [ 'reference', 'mediaInsert' ],
-		'demote': [ 'language', 'specialcharacter' ]
+		'promote': [ 'media', 'transclusion' ],
+		'demote': [ 'specialcharacter' ]
 	}
 ];
 
@@ -246,7 +254,6 @@ ve.init.mw.Target.static.pasteRules = {
  * @property {string[]} iconModuleStyles Modules that should be loaded to provide the icons
  */
 ve.init.mw.Target.static.iconModuleStyles = [
-	'ext.visualEditor.viewPageTarget.icons',
 	'ext.visualEditor.icons'
 ];
 
@@ -421,7 +428,7 @@ ve.init.mw.Target.onLoad = function ( response ) {
 		}
 
 		// Everything worked, the page was loaded, continue as soon as the modules are loaded
-		this.modulesReady.done( ve.bind( this.onReady, this ) );
+		this.modulesReady.done( this.onReady.bind( this ) );
 	}
 };
 
@@ -485,10 +492,10 @@ ve.init.mw.Target.prototype.onReady = function () {
 	this.onNoticesReady();
 	this.loading = false;
 	this.edited = false;
-	this.setupSurface( this.doc, ve.bind( function () {
+	this.setupSurface( this.doc, function () {
 		this.startSanityCheck();
 		this.emit( 'surfaceReady' );
-	}, this ) );
+	}.bind( this ) );
 };
 
 /**
@@ -539,7 +546,14 @@ ve.init.mw.Target.onSave = function ( doc, saveData, response ) {
 	} else if ( typeof data.content !== 'string' ) {
 		this.onSaveError( doc, saveData, null, 'Invalid HTML content in response from server', response );
 	} else {
-		this.emit( 'save', data.content, data.categorieshtml, data.newrevid, data.isRedirect );
+		this.emit(
+			'save',
+			data.content,
+			data.categorieshtml,
+			data.newrevid,
+			data.isRedirect,
+			data.displayTitleHtml
+		);
 	}
 };
 
@@ -939,7 +953,7 @@ ve.init.mw.Target.prototype.load = function ( additionalModules ) {
 	mw.loader.using(
 		// Wait for site and user JS before running plugins
 		this.modules.concat( additionalModules || [] ),
-		ve.bind( ve.init.mw.Target.onModulesReady, this )
+		ve.init.mw.Target.onModulesReady.bind( this )
 	);
 
 	data = {
@@ -971,8 +985,8 @@ ve.init.mw.Target.prototype.load = function ( additionalModules ) {
 			return jqxhr;
 		}
 	)
-		.done( ve.bind( ve.init.mw.Target.onLoad, this ) )
-		.fail( ve.bind( ve.init.mw.Target.onLoadError, this ) )
+		.done( ve.init.mw.Target.onLoad.bind( this ) )
+		.fail( ve.init.mw.Target.onLoadError.bind( this ) )
 		.promise( { 'abort': xhr.abort } );
 
 	return true;
@@ -1022,7 +1036,8 @@ ve.init.mw.Target.prototype.prepareCacheKey = function ( doc ) {
 	}
 	this.clearPreparedCacheKey();
 
-	html = this.getHtml( doc );
+	html = EasyDeflate.deflate( this.getHtml( doc ) );
+
 	xhr = this.constructor.static.apiRequest( {
 		'action': 'visualeditor',
 		'paction': 'serializeforcache',
@@ -1102,7 +1117,7 @@ ve.init.mw.Target.prototype.tryWithPreparedCacheKey = function ( doc, options, e
 			data.cachekey = cachekey;
 		} else {
 			// Getting a cache key failed, fall back to sending the HTML
-			data.html = preparedCacheKey && preparedCacheKey.html || target.getHtml( doc );
+			data.html = preparedCacheKey && preparedCacheKey.html || EasyDeflate.deflate( target.getHtml( doc ) );
 			// If using the cache key fails, we'll come back here with cachekey still set
 			delete data.cachekey;
 		}
@@ -1172,8 +1187,8 @@ ve.init.mw.Target.prototype.save = function ( doc, options ) {
 	} );
 
 	this.saving = this.tryWithPreparedCacheKey( doc, data, 'save' )
-		.done( ve.bind( ve.init.mw.Target.onSave, this, doc, data ) )
-		.fail( ve.bind( this.onSaveError, this, doc, data ) );
+		.done( ve.init.mw.Target.onSave.bind( this, doc, data ) )
+		.fail( this.onSaveError.bind( this, doc, data ) );
 
 	return true;
 };
@@ -1195,8 +1210,8 @@ ve.init.mw.Target.prototype.showChanges = function ( doc ) {
 		'page': this.pageName,
 		'oldid': this.revid
 	}, 'diff' )
-		.done( ve.bind( ve.init.mw.Target.onShowChanges, this ) )
-		.fail( ve.bind( ve.init.mw.Target.onShowChangesError, this ) );
+		.done( ve.init.mw.Target.onShowChanges.bind( this ) )
+		.fail( ve.init.mw.Target.onShowChangesError.bind( this ) );
 
 	return true;
 };
@@ -1271,8 +1286,8 @@ ve.init.mw.Target.prototype.serialize = function ( doc, callback ) {
 		'page': this.pageName,
 		'oldid': this.revid
 	}, 'serialize' )
-		.done( ve.bind( ve.init.mw.Target.onSerialize, this ) )
-		.fail( ve.bind( ve.init.mw.Target.onSerializeError, this ) );
+		.done( ve.init.mw.Target.onSerialize.bind( this ) )
+		.fail( ve.init.mw.Target.onSerializeError.bind( this ) );
 	return true;
 };
 
@@ -1316,7 +1331,7 @@ ve.init.mw.Target.prototype.setupSurface = function ( doc, callback ) {
 					$documentNode = surfaceView.getDocument().getDocumentNode().$element;
 
 				// Initialize surface
-				surface.getContext().hide();
+				surface.getContext().toggle( false );
 				target.$element.append( surface.$element );
 				target.setupToolbar();
 				if ( ve.debug ) {
@@ -1450,15 +1465,26 @@ ve.init.mw.Target.prototype.restoreEditSection = function () {
 			// the model selection, otherwise it will get reset
 			this.surface.getView().once( 'focus', function () {
 				surfaceModel.setSelection( new ve.Range( offset ) );
+				target.scrollToHeading( headingNode );
 			} );
-			// Scroll to heading:
-			// Wait for toolbar to animate in so we can account for its height
-			setTimeout( function () {
-				var $window = $( OO.ui.Element.getWindow( target.$element ) );
-				$window.scrollTop( headingNode.$element.offset().top - target.toolbar.$element.height() );
-			}, 200 );
 		}
 
 		this.section = undefined;
 	}
+};
+
+/**
+ * Scroll to a given heading in the document.
+ *
+ * @method
+ * @param {ve.ce.HeadingNode} headingNode Heading node to scroll to
+ */
+ve.init.mw.Target.prototype.scrollToHeading = function ( headingNode ) {
+	var $window = $( OO.ui.Element.getWindow( this.$element ) ),
+		target = this;
+
+	// Wait for toolbar to animate in so we can account for its height
+	setTimeout( function () {
+		$window.scrollTop( headingNode.$element.offset().top - target.toolbar.$element.height() );
+	}, 200 );
 };

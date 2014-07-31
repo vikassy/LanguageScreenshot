@@ -301,6 +301,11 @@ class ApiVisualEditor extends ApiBase {
 			$parserParams['oldid'] = $params['oldid'];
 		}
 
+		$html = $params['html'];
+		if ( substr( $html, 0, 11 ) === 'rawdeflate,' ) {
+			$html = gzinflate( base64_decode( substr( $html, 11 ) ) );
+		}
+
 		switch ( $params['paction'] ) {
 			case 'parse':
 				$parsed = $this->getHTML( $page, $parserParams );
@@ -364,6 +369,12 @@ class ApiVisualEditor extends ApiBase {
 						$notice .= '</ul>';
 						$notices[] = $notice;
 					}
+				}
+
+				if ( !$page->userCan( 'create' ) && !$page->exists() ) {
+					$notices[] = $this->msg(
+						'permissionserrorstext-withaction', 1, $this->msg( 'action-createpage' )
+					) . "<br>" . $this->msg( 'nocreatetext' )->parse();
 				}
 
 				// Show notice when editing user / user talk page of a user that doesn't exist
@@ -476,7 +487,6 @@ class ApiVisualEditor extends ApiBase {
 					if ( $params['html'] === null ) {
 						$this->dieUsageMsg( 'missingparam', 'html' );
 					}
-					$html = $params['html'];
 					$content = $this->postHTML( $page, $html, $parserParams );
 					if ( $content === false ) {
 						$this->dieUsage( 'Error contacting the Parsoid server', 'parsoidserver' );
@@ -492,7 +502,7 @@ class ApiVisualEditor extends ApiBase {
 						$this->dieUsage( 'No cached serialization found with that key', 'badcachekey' );
 					}
 				} else {
-					$wikitext = $this->postHTML( $page, $params['html'], $parserParams );
+					$wikitext = $this->postHTML( $page, $html, $parserParams );
 					if ( $wikitext === false ) {
 						$this->dieUsage( 'Error contacting the Parsoid server', 'parsoidserver' );
 					}
@@ -507,7 +517,7 @@ class ApiVisualEditor extends ApiBase {
 				break;
 
 			case 'serializeforcache':
-				$key = $this->storeInSerializationCache( $page, $parserParams['oldid'], $params['html'] );
+				$key = $this->storeInSerializationCache( $page, $parserParams['oldid'], $html );
 				$result = array( 'result' => 'success', 'cachekey' => $key );
 				break;
 

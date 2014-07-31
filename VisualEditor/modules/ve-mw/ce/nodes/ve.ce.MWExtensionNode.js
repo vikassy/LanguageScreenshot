@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * ContentEditable MediaWiki extension node.
  *
@@ -23,11 +21,8 @@
  */
 ve.ce.MWExtensionNode = function VeCeMWExtensionNode() {
 	// Mixin constructors
-	ve.ce.FocusableNode.call( this );
+	ve.ce.FocusableNode.call( this, this.getFocusableElement() );
 	ve.ce.GeneratedContentNode.call( this );
-
-	// DOM changes
-	this.$element.addClass( 've-ce-mwExtensionNode' );
 };
 
 /* Inheritance */
@@ -57,10 +52,9 @@ ve.ce.MWExtensionNode.prototype.generateContents = function ( config ) {
 		mwData = this.getModel().getAttribute( 'mw' ),
 		extsrc = config && config.extsrc !== undefined ? config.extsrc : mwData.body.extsrc,
 		attrs = config && config.attrs || mwData.attrs,
-		xmlDoc = ( new DOMParser() ).parseFromString( '<' + this.getModel().getExtensionName() + '/>', 'text/xml' ),
-		wikitext = ( new XMLSerializer() ).serializeToString(
-			$( xmlDoc.documentElement ).attr( attrs ).text( extsrc )[0]
-		);
+		tagName = this.getModel().getExtensionName(),
+		// XML-like tags in wikitext are not actually XML and don't expect their contents to be escaped.
+		wikitext = mw.html.element( tagName, attrs, new mw.html.Raw( extsrc ) );
 
 	if ( !this.constructor.static.rendersEmpty && extsrc.trim() !== '' ) {
 		xhr = ve.init.target.constructor.static.apiRequest( {
@@ -69,8 +63,8 @@ ve.ce.MWExtensionNode.prototype.generateContents = function ( config ) {
 			'page': mw.config.get( 'wgRelevantPageName' ),
 			'wikitext': wikitext
 		}, { 'type': 'POST' } )
-			.done( ve.bind( this.onParseSuccess, this, deferred ) )
-			.fail( ve.bind( this.onParseError, this, deferred ) );
+			.done( this.onParseSuccess.bind( this, deferred ) )
+			.fail( this.onParseError.bind( this, deferred ) );
 		return deferred.promise( { abort: xhr.abort } );
 	} else {
 		deferred.resolve( $( '<span>&nbsp;</span>' ).get() );
@@ -93,9 +87,9 @@ ve.ce.MWExtensionNode.prototype.onParseSuccess = function ( deferred, response )
 ve.ce.MWExtensionNode.prototype.afterRender = function () {
 	// Rerender after images load
 	// TODO: ignore shields, and count multiple images
-	this.$element.find( 'img' ).on( 'load', ve.bind( function () {
+	this.$element.find( 'img' ).on( 'load', function () {
 		this.emit( 'rerender' );
-	}, this ) );
+	}.bind( this ) );
 };
 
 /**

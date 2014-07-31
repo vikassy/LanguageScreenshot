@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw*/
-
 /**
  * MediaWiki meta dialog categories page.
  *
@@ -246,9 +244,9 @@ ve.ui.MWCategoriesPage.prototype.setup = function ( metaList ) {
 	this.defaultSortKeyTouched = false;
 
 	// Update input position once visible
-	setTimeout( ve.bind( function () {
+	setTimeout( function () {
 		this.categoryWidget.fitInput();
-	}, this ) );
+	}.bind( this ) );
 };
 
 /**

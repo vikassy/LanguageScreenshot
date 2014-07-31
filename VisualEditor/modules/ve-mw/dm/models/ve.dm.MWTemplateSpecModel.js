@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * MediaWiki template specification.
  *
@@ -128,6 +126,8 @@ ve.dm.MWTemplateSpecModel.prototype.getLabel = function () {
 			if ( titleObj.getNamespaceId() === 10 ) {
 				// Template namespace, remove namespace prefix
 				title = titleObj.getMainText();
+			} else if ( titleObj.getNamespaceId() === 0 ) {
+				title = ':' + titleObj.getPrefixedText();
 			} else {
 				// Other namespace, already has a prefix
 				title = titleObj.getPrefixedText();

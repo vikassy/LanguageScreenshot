@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * ContentEditable MediaWiki transclusion node.
  *
@@ -27,9 +25,6 @@ ve.ce.MWTransclusionNode = function VeCeMWTransclusionNode( model, config ) {
 	// Mixin constructors
 	ve.ce.FocusableNode.call( this );
 	ve.ce.GeneratedContentNode.call( this );
-
-	// DOM changes
-	this.$element.addClass( 've-ce-mwTransclusionNode' );
 };
 
 /* Inheritance */
@@ -66,8 +61,18 @@ ve.ce.MWTransclusionNode.static.getDescription = function ( model ) {
 
 	return words
 		.map( function ( template ) {
-			var title = mw.Title.newFromText( template );
-			return title ? title.getPrefixedText() : template;
+			var title = mw.Title.newFromText( template, mw.config.get( 'wgNamespaceIds' ).template );
+			if ( title ) {
+				if ( title.getNamespaceId() === 10 ) {
+					return title.getMainText();
+				} else if ( title.getNamespaceId() === 0 ) {
+					return ':' + title.getPrefixedText();
+				} else {
+					return title.getPrefixedText();
+				}
+			} else {
+				return template;
+			}
 		} )
 		.join( ', ' );
 };
@@ -83,8 +88,8 @@ ve.ce.MWTransclusionNode.prototype.generateContents = function ( config ) {
 		'page': mw.config.get( 'wgRelevantPageName' ),
 		'wikitext': ( config && config.wikitext ) || this.model.getWikitext()
 	}, { 'type': 'POST' } )
-		.done( ve.bind( this.onParseSuccess, this, deferred ) )
-		.fail( ve.bind( this.onParseError, this, deferred ) );
+		.done( this.onParseSuccess.bind( this, deferred ) )
+		.fail( this.onParseError.bind( this, deferred ) );
 
 	return deferred.promise( { abort: xhr.abort } );
 };
@@ -148,9 +153,6 @@ ve.ce.MWTransclusionNode.prototype.onParseError = function ( deferred ) {
 ve.ce.MWTransclusionBlockNode = function VeCeMWTransclusionBlockNode( model ) {
 	// Parent constructor
 	ve.ce.MWTransclusionNode.call( this, model );
-
-	// DOM changes
-	this.$element.addClass( 've-ce-mwTransclusionBlockNode' );
 };
 
 /* Inheritance */
@@ -174,9 +176,6 @@ ve.ce.MWTransclusionBlockNode.static.tagName = 'div';
 ve.ce.MWTransclusionInlineNode = function VeCeMWTransclusionInlineNode( model ) {
 	// Parent constructor
 	ve.ce.MWTransclusionNode.call( this, model );
-
-	// DOM changes
-	this.$element.addClass( 've-ce-mwTransclusionInlineNode' );
 };
 
 /* Inheritance */

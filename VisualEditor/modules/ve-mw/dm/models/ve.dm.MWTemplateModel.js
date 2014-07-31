@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw*/
-
 /**
  * MediaWiki template model.
  *
@@ -89,12 +87,8 @@ ve.dm.MWTemplateModel.newFromData = function ( transclusion, data ) {
 ve.dm.MWTemplateModel.newFromName = function ( transclusion, name ) {
 	var href = name;
 
-	if ( href.charAt( 0 ) !== ':' ) {
-		href = mw.config.get( 'wgFormattedNamespaces' )[10] + ':' + href;
-	}
-
 	// TODO: Do we need to account for the title being invalid?
-	href = new mw.Title( href ).getPrefixedText();
+	href = new mw.Title( href, mw.config.get( 'wgNamespaceIds' ).template ).getPrefixedText();
 
 	return new ve.dm.MWTemplateModel( transclusion, { 'href': href, 'wt': name }, 'user' );
 };
@@ -288,9 +282,10 @@ ve.dm.MWTemplateModel.prototype.removeParameter = function ( param ) {
  * Add all non-existing required and suggested parameters, if any.
  *
  * @method
+ * @returns {number} Number of parameters added
  */
 ve.dm.MWTemplateModel.prototype.addPromptedParameters = function () {
-	var i, len,
+	var i, len, addedCount = 0,
 		spec = this.getSpec(),
 		names = spec.getParameterNames();
 
@@ -303,8 +298,11 @@ ve.dm.MWTemplateModel.prototype.addPromptedParameters = function () {
 				)
 			) {
 			this.addParameter( new ve.dm.MWParameterModel( this, names[i] ) );
+			addedCount++;
 		}
 	}
+
+	return addedCount;
 };
 
 /**

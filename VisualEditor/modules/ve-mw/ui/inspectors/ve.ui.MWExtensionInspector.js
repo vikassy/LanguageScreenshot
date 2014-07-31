@@ -6,28 +6,36 @@
  */
 
 /**
- * MediaWiki extension inspector.
+ * Inspector for editing generic MediaWiki extensions.
  *
  * @class
  * @abstract
- * @extends ve.ui.Inspector
+ * @extends ve.ui.FragmentInspector
  *
  * @constructor
+ * @param {OO.ui.WindowManager} manager Manager of window
  * @param {Object} [config] Configuration options
  */
-ve.ui.MWExtensionInspector = function VeUiMWExtensionInspector( config ) {
+ve.ui.MWExtensionInspector = function VeUiMWExtensionInspector( manager, config ) {
 	// Parent constructor
-	ve.ui.Inspector.call( this, config );
+	ve.ui.FragmentInspector.call( this, manager, config );
 };
 
 /* Inheritance */
 
-OO.inheritClass( ve.ui.MWExtensionInspector, ve.ui.Inspector );
+OO.inheritClass( ve.ui.MWExtensionInspector, ve.ui.FragmentInspector );
 
 /* Static properties */
 
 ve.ui.MWExtensionInspector.static.placeholder = null;
 
+/**
+ * Node class that this inspector inspects. Subclass of ve.dm.Node.
+ * @property {Function}
+ * @abstract
+ * @static
+ * @inheritable
+ */
 ve.ui.MWExtensionInspector.static.nodeModel = null;
 
 ve.ui.MWExtensionInspector.static.removable = false;
@@ -72,7 +80,7 @@ ve.ui.MWExtensionInspector.prototype.initialize = function () {
 	this.isBlock = !this.constructor.static.nodeModel.static.isContent;
 
 	// Initialization
-	this.$form.append( this.input.$element );
+	this.form.$element.append( this.input.$element );
 };
 
 /**
@@ -88,6 +96,7 @@ ve.ui.MWExtensionInspector.prototype.getInputPlaceholder = function () {
  * @inheritdoc
  */
 ve.ui.MWExtensionInspector.prototype.getSetupProcess = function ( data ) {
+	data = data || {};
 	return ve.ui.MWExtensionInspector.super.prototype.getSetupProcess.call( this, data )
 		.next( function () {
 			var value, dir;
@@ -193,5 +202,13 @@ ve.ui.MWExtensionInspector.prototype.getTeardownProcess = function ( data ) {
  * @param {Object} mwData MediaWiki data object
  */
 ve.ui.MWExtensionInspector.prototype.updateMwData = function ( mwData ) {
-	mwData.body.extsrc = this.whitespace[0] + this.input.getValue() + this.whitespace[1];
+	var tagName = mwData.name,
+		value = this.input.getValue();
+
+	// XML-like tags in wikitext are not actually XML and don't expect their contents to be escaped.
+	// This means that it is not possible for a tag '<foo>…</foo>' to contain the string '</foo>'.
+	// Prevent that by escaping the first angle bracket '<' to '&lt;'. (bug 57429)
+	value = value.replace( new RegExp( '<(/' + tagName + '\\s*>)', 'gi' ), '&lt;$1' );
+
+	mwData.body.extsrc = this.whitespace[0] + value + this.whitespace[1];
 };

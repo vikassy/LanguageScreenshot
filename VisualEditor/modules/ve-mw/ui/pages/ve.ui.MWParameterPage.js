@@ -52,7 +52,7 @@ ve.ui.MWParameterPage = function VeUiMWParameterPage( parameter, name, config ) 
 
 	this.removeButton = new OO.ui.ButtonWidget( {
 		'$': this.$,
-		'frameless': true,
+		'framed': false,
 		'icon': 'remove',
 		'title': ve.msg( 'visualeditor-dialog-transclusion-remove-param' ),
 		'classes': [ 've-ui-mwParameterPage-removeButton' ]
@@ -61,7 +61,7 @@ ve.ui.MWParameterPage = function VeUiMWParameterPage( parameter, name, config ) 
 
 	this.infoButton = new OO.ui.PopupButtonWidget( {
 		'$': this.$,
-		'frameless': true,
+		'framed': false,
 		'icon': 'info',
 		'title': ve.msg( 'visualeditor-dialog-transclusion-param-info' ),
 		'classes': [ 've-ui-mwParameterPage-infoButton' ]
@@ -69,12 +69,12 @@ ve.ui.MWParameterPage = function VeUiMWParameterPage( parameter, name, config ) 
 
 	this.addButton = new OO.ui.ButtonWidget( {
 		'$': this.$,
-		'frameless': true,
+		'framed': false,
 		'icon': 'parameter',
 		'label': ve.msg( 'visualeditor-dialog-transclusion-add-param' ),
 		'tabIndex': -1
 	} )
-		.connect( this, { 'click': 'onAddButtonClick' } );
+		.connect( this, { 'click': 'onAddButtonFocus' } );
 
 	this.statusIndicator = new OO.ui.IndicatorWidget( {
 		'$': this.$,
@@ -84,8 +84,7 @@ ve.ui.MWParameterPage = function VeUiMWParameterPage( parameter, name, config ) 
 	// TODO: Use spec.type
 
 	// Events
-	this.$label.on( 'click', ve.bind( this.onLabelClick, this ) );
-	this.$description.on( 'click', ve.bind( this.onDescriptionClick, this ) );
+	this.$label.on( 'click', this.onLabelClick.bind( this ) );
 
 	// Initialization
 	this.$info
@@ -104,7 +103,8 @@ ve.ui.MWParameterPage = function VeUiMWParameterPage( parameter, name, config ) 
 		);
 	this.$more
 		.addClass( 've-ui-mwParameterPage-more' )
-		.append( this.addButton.$element );
+		.append( this.addButton.$element )
+		.focus( this.onAddButtonFocus.bind( this ) );
 	this.$element
 		.addClass( 've-ui-mwParameterPage' )
 		.append( this.$info, this.$actions, this.$field, this.$more );
@@ -177,7 +177,7 @@ ve.ui.MWParameterPage.prototype.onRemoveButtonClick = function () {
 	this.parameter.remove();
 };
 
-ve.ui.MWParameterPage.prototype.onAddButtonClick = function () {
+ve.ui.MWParameterPage.prototype.onAddButtonFocus = function () {
 	var template = this.parameter.getTemplate();
 	template.addParameter( new ve.dm.MWParameterModel( template ) );
 };

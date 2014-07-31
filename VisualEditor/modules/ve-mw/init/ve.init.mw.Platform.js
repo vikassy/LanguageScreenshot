@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * Initialization MediaWiki platform.
  *
@@ -20,7 +18,9 @@ ve.init.mw.Platform = function VeInitMwPlatform() {
 	ve.init.Platform.call( this );
 
 	// Properties
-	this.externalLinkUrlProtocolsRegExp = new RegExp( '^(' + mw.config.get( 'wgUrlProtocols' ) + ')' );
+	this.externalLinkUrlProtocolsRegExp = new RegExp(
+		'^(' + mw.config.get( 'wgUrlProtocols' ) + ')'
+	);
 	this.modulesUrl = mw.config.get( 'wgExtensionAssetsPath' ) + '/VisualEditor/modules';
 	this.parsedMessages = {};
 	this.linkCache = new ve.init.mw.LinkCache();
@@ -51,7 +51,7 @@ ve.init.mw.Platform.prototype.addMessages = function ( messages ) {
  * @method
  * @inheritdoc
  */
-ve.init.mw.Platform.prototype.getMessage = ve.bind( mw.msg, mw );
+ve.init.mw.Platform.prototype.getMessage = mw.msg.bind( mw );
 
 /** @inheritdoc */
 ve.init.mw.Platform.prototype.addParsedMessages = function ( messages ) {
@@ -115,12 +115,16 @@ ve.init.mw.Platform.prototype.getUserLanguages = function () {
 	return langs;
 };
 
+ve.init.mw.Platform.prototype.isInternetExplorer = function () {
+	return $.client.profile().name === 'msie';
+};
+
 /* Initialization */
 
 ve.init.platform = new ve.init.mw.Platform();
 
 /* Extension */
 
-OO.ui.getUserLanguages = ve.bind( ve.init.platform.getUserLanguages, ve.init.platform );
+OO.ui.getUserLanguages = ve.init.platform.getUserLanguages.bind( ve.init.platform );
 
-OO.ui.msg = ve.bind( ve.init.platform.getMessage, ve.init.platform );
+OO.ui.msg = ve.init.platform.getMessage.bind( ve.init.platform );

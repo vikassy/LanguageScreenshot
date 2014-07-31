@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw*/
-
 /**
  * Creates an ve.ui.MWMediaSearchWidget object.
  *
@@ -18,20 +16,9 @@
  * @param {number} [size] Vertical size of thumbnails
  */
 ve.ui.MWMediaSearchWidget = function VeUiMWMediaSearchWidget( config ) {
-	var pageTitle = mw.config.get( 'wgTitle' ),
-		namespace = mw.config.get( 'wgNamespaceNumber' ),
-		namespacesWithSubpages = mw.config.get( 'wgVisualEditor' ).namespacesWithSubpages;
-
-	if ( namespacesWithSubpages[ namespace ] ) {
-		// If we are in a namespace that allows for subpages, strip the entire
-		// title except for the part after the last /
-		pageTitle = pageTitle.substr( pageTitle.lastIndexOf( '/' ) + 1 );
-	}
-
 	// Configuration intialization
 	config = ve.extendObject( {
-		'placeholder': ve.msg( 'visualeditor-media-input-placeholder' ),
-		'value': pageTitle
+		'placeholder': ve.msg( 'visualeditor-media-input-placeholder' )
 	}, config );
 
 	// Parent constructor
@@ -42,7 +29,7 @@ ve.ui.MWMediaSearchWidget = function VeUiMWMediaSearchWidget( config ) {
 	this.size = config.size || 150;
 	this.queryTimeout = null;
 	this.titles = {};
-	this.queryMediaSourcesCallback = ve.bind( this.queryMediaSources, this );
+	this.queryMediaSourcesCallback = this.queryMediaSources.bind( this );
 
 	this.sourceCounter = 0;
 
@@ -52,7 +39,7 @@ ve.ui.MWMediaSearchWidget = function VeUiMWMediaSearchWidget( config ) {
 		.appendTo( this.$query );
 
 	// Events
-	this.$results.on( 'scroll', ve.bind( this.onResultsScroll, this ) );
+	this.$results.on( 'scroll', this.onResultsScroll.bind( this ) );
 
 	// Initialization
 	this.$element.addClass( 've-ui-mwMediaSearchWidget' );
@@ -164,8 +151,8 @@ ve.ui.MWMediaSearchWidget.prototype.queryMediaSources = function () {
 				// but isn't working for some reason.
 				'dataType': 'jsonp'
 			} )
-				.done( ve.bind( this.onMediaQueryDone, this, source ) )
-				.always( ve.bind( this.onMediaQueryAlways, this, source ) );
+				.done( this.onMediaQueryDone.bind( this, source ) )
+				.always( this.onMediaQueryAlways.bind( this, source ) );
 			source.value = value;
 		}
 	}

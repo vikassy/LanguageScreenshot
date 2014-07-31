@@ -5,8 +5,6 @@
  * @license The MIT License (MIT); see LICENSE.txt
  */
 
-/*global mw */
-
 /**
  * MediaWiki transclusion dialog template page.
  *
@@ -19,7 +17,7 @@
  * @param {Object} [config] Configuration options
  */
 ve.ui.MWTemplatePage = function VeUiMWTemplatePage( template, name, config ) {
-	var title;
+	var title, titleText;
 
 	// Configuration initialization
 	config = ve.extendObject( {
@@ -36,7 +34,7 @@ ve.ui.MWTemplatePage = function VeUiMWTemplatePage( template, name, config ) {
 	this.$description = this.$( '<div>' );
 	this.removeButton = new OO.ui.ButtonWidget( {
 		'$': this.$,
-		'frameless': true,
+		'framed': false,
 		'icon': 'remove',
 		'title': ve.msg( 'visualeditor-dialog-transclusion-remove-template' ),
 		'flags': ['destructive'],
@@ -50,28 +48,44 @@ ve.ui.MWTemplatePage = function VeUiMWTemplatePage( template, name, config ) {
 	} );
 	this.addButton = new OO.ui.ButtonWidget( {
 		'$': this.$,
-		'frameless': true,
+		'framed': false,
 		'icon': 'parameter',
 		'label': ve.msg( 'visualeditor-dialog-transclusion-add-param' ),
 		'tabIndex': -1
 	} )
-		.connect( this, { 'click': 'onAddButtonClick' } );
+		.connect( this, { 'click': 'onAddButtonFocus' } );
 
 	// Initialization
 	this.$description.addClass( 've-ui-mwTemplatePage-description' );
 	if ( this.spec.getDescription() ) {
 		this.$description.text( this.spec.getDescription() );
 	} else {
-		title = new mw.Title( this.template.getTitle() );
-		this.$description
-			.addClass( 've-ui-mwTemplatePage-description-missing' )
-			.append( ve.msg(
-				'visualeditor-dialog-transclusion-no-template-description',
-				title.getMainText(),
-				ve.getHtmlAttributes( { 'target': '_blank', 'href': title.getUrl() } ),
-				mw.user
-			) );
+		title = this.template.getTitle();
+		// The transcluded page may be dynamically generated or unspecified in the DOM
+		// for other reasons (bug 66724). In that case we can't tell the user what
+		// the template is called nor link to the template page.
+		if ( title ) {
+			title = mw.Title.newFromText( title );
+		}
+		if ( title ) {
+			if ( title.getNamespaceId() === 10 ) {
+				titleText = title.getMainText();
+			} else if ( title.getNamespaceId() === 0 ) {
+				titleText = ':' + title.getPrefixedText();
+			} else {
+				titleText = title.getPrefixedText();
+			}
+			this.$description
+				.addClass( 've-ui-mwTemplatePage-description-missing' )
+				.append( ve.msg(
+					'visualeditor-dialog-transclusion-no-template-description',
+					titleText,
+					ve.getHtmlAttributes( { 'target': '_blank', 'href': title.getUrl() } ),
+					mw.user
+				) );
+		}
 	}
+
 	this.infoFieldset.$element.append( this.$description );
 	this.$more
 		.addClass( 've-ui-mwTemplatePage-more' )
@@ -107,6 +121,6 @@ ve.ui.MWTemplatePage.prototype.onRemoveButtonClick = function () {
 	this.template.remove();
 };
 
-ve.ui.MWTemplatePage.prototype.onAddButtonClick = function () {
+ve.ui.MWTemplatePage.prototype.onAddButtonFocus = function () {
 	this.template.addParameter( new ve.dm.MWParameterModel( this.template ) );
 };

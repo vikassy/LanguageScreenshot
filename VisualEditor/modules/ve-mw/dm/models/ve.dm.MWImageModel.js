@@ -4,7 +4,6 @@
  * @copyright 2011-2014 VisualEditor Team and others; see AUTHORS.txt
  * @license The MIT License (MIT); see LICENSE.txt
  */
-/*global mw */
 
 /**
  * MediaWiki image model.
@@ -19,12 +18,12 @@ ve.dm.MWImageModel = function VeDmMWImageModel() {
 	OO.EventEmitter.call( this );
 
 	// Properties
-	this.mediaNode = null;
 	this.attributesCache = null;
 
 	// Image properties
 	this.captionDoc = null;
 	this.caption = null;
+	this.mediaType = null;
 	this.altText = null;
 	this.type = null;
 	this.alignment = null;
@@ -66,6 +65,7 @@ OO.mixinClass( ve.dm.MWImageModel, OO.EventEmitter );
  * @event typeChange
  * @param {string} Image type 'thumb', 'frame', 'frameless' or 'none'
  */
+
 /* Static Properties */
 
 ve.dm.MWImageModel.static.infoCache = {};
@@ -73,30 +73,82 @@ ve.dm.MWImageModel.static.infoCache = {};
 /* Static Methods */
 
 /**
+ * Create a new image node based on given parameters.
+ * @param {Object} attributes Image attributes
+ * @param {string} [imageType] Image node type 'mwInlineImage' or 'mwBlockImage'.
+ *  Defaults to 'mwBlockImage'
+ * @returns {ve.dm.MWImageNode} An image node
+ */
+ve.dm.MWImageModel.static.createImageNode = function ( attributes, imageType ) {
+	var attrs, newNode, newDimensions,
+		defaultThumbSize = mw.config.get( 'wgVisualEditorConfig' ).defaultUserOptions.defaultthumbsize;
+
+	attrs = ve.extendObject( {
+		'type': 'thumb',
+		'align': 'default',
+		'width': defaultThumbSize,
+		'mediaType': 'BITMAP',
+		'defaultSize': true
+	}, attributes );
+
+	if ( attrs.defaultSize ) {
+		// Resize to default thumbnail size, but only if the image itself
+		// isn't smaller than the default size
+		// For svg/drawings, the default wiki size is always applied
+		if ( attrs.width > defaultThumbSize || attrs.mediaType === 'DRAWING' ) {
+			newDimensions = ve.dm.Scalable.static.getDimensionsFromValue( {
+				'width': defaultThumbSize
+			}, attrs.width / attrs.height );
+			attrs.width = newDimensions.width;
+			attrs.height = newDimensions.height;
+		}
+	}
+
+	imageType = imageType || 'mwBlockImage';
+
+	newNode = ve.dm.nodeFactory.create( imageType, {
+		'type': imageType,
+		'attributes': attrs
+	} );
+
+	ve.dm.MWImageNode.static.syncScalableToType( attrs.type, attrs.mediaType, newNode.getScalable() );
+
+	return newNode;
+};
+
+/**
  * Load from image data with scalable information.
  *
- * @param {ve.dm.MWImageNode} node Image node
+ * @param {Object} attrs Image node attributes
+ * @param {string} [dir=ltr] Document direction
  * @return {ve.dm.MWImageModel} Image model
  */
-ve.dm.MWImageModel.static.newFromImageNode = function ( node ) {
-	var doc = node.getDocument(),
-		captionNode,
-		attrs = node.getAttributes(),
+ve.dm.MWImageModel.static.newFromImageAttributes = function ( attrs, dir ) {
+	var scalable,
 		imgModel = new ve.dm.MWImageModel();
-
-	imgModel.setMediaNode( node );
-	// Set scalable
-	imgModel.setScalable( node.getScalable() );
 
 	// Cache the attributes so we can create a new image without
 	// losing any existing information
 	imgModel.cacheOriginalImageAttributes( attrs );
 
+	// Create scalable
+	scalable = new ve.dm.Scalable( {
+		'currentDimensions': {
+			'width': attrs.width,
+			'height': attrs.height
+		},
+		'minDimensions': {
+			'width': 1,
+			'height': 1
+		}
+	} );
+	imgModel.setScalable( scalable );
+
 	// Collect all the information
 	imgModel.toggleBorder( !!attrs.borderImage );
 	imgModel.setAltText( attrs.alt );
 
-	imgModel.setDir( doc.getDir() );
+	imgModel.setDir( dir || 'ltr' );
 
 	imgModel.setType( attrs.type );
 
@@ -115,17 +167,6 @@ ve.dm.MWImageModel.static.newFromImageNode = function ( node ) {
 		'default' :
 		'custom'
 	);
-
-	// Make sure the node type and scalable are synchronized
-	node.syncScalableToType();
-
-	// If this is a block image, get the caption
-	if ( node.getType() === 'mwBlockImage' ) {
-		captionNode = node.getCaptionNode();
-		if ( captionNode && captionNode.getLength() > 0 ) {
-			imgModel.setCaptionDocument( doc.cloneFromRange( captionNode.getRange() ) );
-		}
-	}
 	return imgModel;
 };
 
@@ -157,12 +198,12 @@ ve.dm.MWImageModel.prototype.getImageNodeType = function ( imageType, align ) {
 /**
  * Update an existing image node by changing its attributes
  *
+ * @param {ve.dm.MWImageNode} node Image node to update
  * @param {ve.dm.Surface} surfaceModel Surface model of main document
  */
-ve.dm.MWImageModel.prototype.updateImageNode = function ( surfaceModel ) {
+ve.dm.MWImageModel.prototype.updateImageNode = function ( node, surfaceModel ) {
 	var captionRange, captionNode,
-		doc = surfaceModel.getDocument(),
-		node = this.getMediaNode();
+		doc = surfaceModel.getDocument();
 
 	// Update the caption
 	if ( node.getType() === 'mwBlockImage' ) {
@@ -174,7 +215,7 @@ ve.dm.MWImageModel.prototype.updateImageNode = function ( surfaceModel ) {
 				.collapseRangeToStart()
 				.insertContent( [ { 'type': 'mwImageCaption' }, { 'type': '/mwImageCaption' } ] );
 			// Update the caption node
-			captionNode = this.getMediaNode().getCaptionNode();
+			captionNode = node.getCaptionNode();
 		}
 
 		captionRange = captionNode.getRange();
@@ -259,7 +300,7 @@ ve.dm.MWImageModel.prototype.insertImageNode = function ( fragment ) {
 			fragment.insertContent( contentToInsert );
 			// Check if there is caption document and insert it
 			captionDoc = this.getCaptionDocument();
-			if ( captionDoc.data.getLength() > 4 ) {
+			if ( captionDoc.data.countNonInternalElements() > 2 ) {
 				// Add contents of new caption
 				surfaceModel.change(
 					ve.dm.Transaction.newFromDocumentInsertion(
@@ -329,19 +370,14 @@ ve.dm.MWImageModel.prototype.onScalableDefaultSizeChange = function ( isDefault 
 };
 
 /**
- * Set the media node
- * @param {ve.dm.MWImageNode} node Node model
+ * Set symbolic name of media type.
+ *
+ * Example values: "BITMAP" for JPEG or PNG images; "DRAWING" for SVG graphics
+ *
+ * @param {string|undefined} Symbolic media type name, or undefined if empty
  */
-ve.dm.MWImageModel.prototype.setMediaNode = function ( node ) {
-	this.mediaNode = node;
-};
-
-/**
- * Retrieve the media node
- * @return {ve.dm.MWImageNode} node Node model
- */
-ve.dm.MWImageModel.prototype.getMediaNode = function () {
-	return this.mediaNode;
+ve.dm.MWImageModel.prototype.setMediaType = function ( type ) {
+	this.mediaType = type;
 };
 
 /**
@@ -452,7 +488,7 @@ ve.dm.MWImageModel.prototype.getSizeType = function () {
  * @return {string|undefined} Symbolic media type name, or undefined if empty
  */
 ve.dm.MWImageModel.prototype.getMediaType = function () {
-	return this.getMediaNode().getMediaType();
+	return this.mediaType;
 };
 
 /**
@@ -574,7 +610,7 @@ ve.dm.MWImageModel.prototype.getOriginalImageAttributes = function () {
  * @param {number} dimensions.height The height of the image
  */
 ve.dm.MWImageModel.prototype.setCurrentDimensions = function ( dimensions ) {
-	var normalizedDimensions = this.scalable.getDimensionsFromValue( dimensions );
+	var normalizedDimensions = ve.dm.Scalable.static.getDimensionsFromValue( dimensions, this.scalable.getRatio() );
 	this.scalable.setCurrentDimensions( normalizedDimensions );
 };
 
@@ -628,7 +664,7 @@ ve.dm.MWImageModel.prototype.setType = function ( type ) {
 
 	// Let the image node update scalable considerations
 	// for default and max dimensions as per the new type.
-	this.getMediaNode().syncScalableToType( type );
+	ve.dm.MWImageNode.static.syncScalableToType( type, this.getMediaType(), this.getScalable() );
 
 	this.emit( 'typeChange', type );
 };
@@ -648,9 +684,9 @@ ve.dm.MWImageModel.prototype.resetDefaultDimensions = function () {
 				this.scalable.setDefaultDimensions( originalDimensions );
 			} else {
 				this.scalable.setDefaultDimensions(
-					this.scalable.getDimensionsFromValue( {
+					ve.dm.Scalable.static.getDimensionsFromValue( {
 						'width': this.defaultThumbSize
-					} )
+					}, this.scalable.getRatio() )
 				);
 			}
 		} else {
@@ -755,17 +791,48 @@ ve.dm.MWImageModel.prototype.setDir = function ( dir ) {
 };
 
 /**
+ * Get the image source
+ * @return {string} Source attribute
+ */
+ve.dm.MWImageModel.prototype.getImageSource = function () {
+	return this.getOriginalImageAttributes().src;
+};
+
+/**
  * Set the scalable object relevant to the image node
  *
  * @param {ve.dm.Scalable} Scalable object
  */
 ve.dm.MWImageModel.prototype.setScalable = function ( scalable ) {
+	var imageName,
+		attrs = this.getOriginalImageAttributes();
+
 	if ( this.scalable instanceof ve.dm.Scalable ) {
 		this.scalable.disconnect( this );
 	}
 	this.scalable = scalable;
+
 	// Events
 	this.scalable.connect( this, { 'defaultSizeChange': 'onScalableDefaultSizeChange' } );
+
+	// Update the given scalable object according to model attributes
+	imageName = attrs.resource.replace( /^(.+\/)*/, '' );
+	// Call for updated scalable
+	ve.dm.MWImageNode.static.getScalablePromise( imageName ).done( ve.bind( function ( info ) {
+		this.scalable.setOriginalDimensions( {
+			'width': info.width,
+			'height': info.height
+		} );
+		// Update media type
+		this.setMediaType( info.mediatype );
+
+		// Update according to type
+		ve.dm.MWImageNode.static.syncScalableToType(
+			this.getType(),
+			this.getMediaType(),
+			this.getScalable()
+		);
+	}, this ) );
 };
 
 /**
