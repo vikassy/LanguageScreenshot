@@ -25,7 +25,7 @@ def crop_image path, page_elements, offset_element
 
   require "chunky_png"
   element = ChunkyPNG::Image.from_file path
-  element.crop!(top_left_x, top_left_y, width, height)
+  element.crop!(top_left_x.to_i, top_left_y.to_i, width.to_i, height.to_i)
   element.save path
 end
 

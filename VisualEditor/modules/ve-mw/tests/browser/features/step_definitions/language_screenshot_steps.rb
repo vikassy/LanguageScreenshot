@@ -219,3 +219,8 @@ Then(/^I should see the VisualEditor tool-bar$/) do
   on(VisualEditorPage).toolbar_element.when_present.should be_visible
   capture_screenshot("#{@scenario.name}-#{ENV['LANGUAGE_SCREENSHOT_CODE']}.png", [@current_page.right_navigation_element, @current_page.left_navigation_element, @current_page.toolbar_element])
 end
+
+
+Then(/^I should see VisualEditor toolbar containing cancel and save button$/) do
+  pending
+end
